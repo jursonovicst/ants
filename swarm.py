@@ -1,3 +1,5 @@
+#!python3
+
 import argparse
 from killthebeast import Colony, Nest, Egg, Ant, HTTPAnt, ABRAnt
 
