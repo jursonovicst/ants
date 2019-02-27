@@ -58,8 +58,8 @@ class Colony(Thread):
 
                 while not self._stopevent.isSet():
                     conn = listener.accept()
-                    self._log("accepts connection from %s" % (
-                        listener.last_accepted if port is None else ("%s:%d" % (address, port))))
+                    self._log("connection accepted %s" % (
+                        ("on '%s'" % address) if port is None else ("%s:%d" % (address, port))))
                     self._connlock.acquire()
                     self._conns.append(conn)
                     self._connlock.release()
@@ -72,7 +72,7 @@ class Colony(Thread):
         self._log("stopped listening")
 
     def run(self):
-        self._log("waiting for messages")
+        # self._log("waiting for messages")
         while not self._stopevent.isSet():
             self._connlock.acquire()
             if self._conns:
