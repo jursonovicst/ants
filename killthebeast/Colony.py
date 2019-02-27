@@ -51,17 +51,25 @@ class Colony(Thread):
         self.start()
 
     def _listen(self, address, port):
-        with Listener(address=address if port is None else (address, port),
-                      family='AF_UNIX' if port is None else 'AF_INET') as listener:
-            self._log("listening on %s" % (address if port is None else ("%s:%d" % (address, port))))
+        try:
+            with Listener(address=address if port is None else (address, port),
+                          family='AF_UNIX' if port is None else 'AF_INET') as listener:
+                self._log("listening on %s" % (address if port is None else ("%s:%d" % (address, port))))
 
-            while not self._stopevent.isSet():
-                conn = listener.accept()
-                self._log("accepts connection from %s" % (listener.last_accepted if port is None else ("%s:%d" % (address, port))))
-                self._connlock.acquire()
-                self._conns.append(conn)
-                self._connlock.release()
-        self._log("ended listening on %s" % (self.SOCK if address is None else ("%s:%d" % (address, port))))
+                while not self._stopevent.isSet():
+                    conn = listener.accept()
+                    self._log("accepts connection from %s" % (
+                        listener.last_accepted if port is None else ("%s:%d" % (address, port))))
+                    self._connlock.acquire()
+                    self._conns.append(conn)
+                    self._connlock.release()
+
+        except KeyboardInterrupt:
+            print("SSS")
+        except OSError as err:
+            self._log(err)
+
+        self._log("stopped listening")
 
     def run(self):
         self._log("waiting for messages")
@@ -80,11 +88,12 @@ class Colony(Thread):
                             self._stopevent.set()
 
             self._connlock.release()
-        self._log("exits")
+
+        self._listenerthread.join(5)
+        self._log("exited")
 
     def _send(self, o):
         assert self._conns, "No connection to send on"
-        print(self._conns)
         self._conns[self._connptr].send(o)
         self._connptr = (self._connptr + 1) % len(self._conns)
 
@@ -96,7 +105,11 @@ class Colony(Thread):
         self._sendtoall(Cmd.kick())
 
         # wait for the stop event (all nests quit)
-        self._stopevent.wait()
+        try:
+            self._stopevent.wait()
+        except KeyboardInterrupt:
+            self.terminate()
+            self._stopevent.set()
 
     def terminate(self):
         self._sendtoall(Cmd.terminate())

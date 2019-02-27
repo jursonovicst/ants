@@ -1,9 +1,5 @@
 from threading import Thread
-from threading import Event, Timer, Semaphore
 import sched, time
-from queue import Queue, Empty
-import random
-import time
 from io import BytesIO
 import pycurl
 from urllib.parse import urlparse
@@ -124,7 +120,7 @@ class ABRAnt(Ant):
                 c = streamindex.find("c[@t]")
                 ds = list(map(lambda e: int(e.get('d')), streamindex.findall("c")))
                 assert np.std(ds) < np.average(ds) * 0.5, "deviation of d values are greater than 5%%: %f/%f" % (
-                np.std(ds), np.average(ds))
+                    np.std(ds), np.average(ds))
 
                 ds.insert(int(c.get("t")), 0)
                 cds = np.cumsum(ds)
@@ -156,7 +152,7 @@ class ABRAnt(Ant):
                 c = streamindex.find("c[@t]")
                 ds = list(map(lambda e: int(e.get('d')), streamindex.findall("c")))
                 assert np.std(ds) < np.average(ds) * 0.5, "deviation of d values are greater than 5%%: %f/%f" % (
-                np.std(ds), np.average(ds))
+                    np.std(ds), np.average(ds))
 
                 ds.insert(int(c.get("t")), 0)
                 cds = np.cumsum(ds)

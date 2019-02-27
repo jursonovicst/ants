@@ -2,10 +2,11 @@ from killthebeast import Ant
 import time
 from typing import Type
 
+
 class Egg(object):
-    def __init__(self, at:float, larv:Type, **kwargs):
+    def __init__(self, at: float, larv: Type, **kwargs):
         assert at >= 0, "Egg cannot hatch in the past: %f" % at
-        assert larv.__class__.__name__==Ant.__class__.__name__, "Only Ant can hatch from an egg: %s" % larv
+        assert larv.__class__.__name__ == Ant.__class__.__name__, "Only Ant can hatch from an egg: %s" % larv
 
         self._at = at
         self._larv = larv

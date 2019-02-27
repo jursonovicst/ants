@@ -1,15 +1,14 @@
 #!python3
 
 import argparse
-from killthebeast import Colony, Nest, Egg, Ant, HTTPAnt, ABRAnt
-
-
-
+from killthebeast import Colony, Nest
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='colony', description='Colony load tester')
-    parser.add_argument('--listen',  type=str, nargs='?', metavar=('address'), help='Listen (default: %(default)s)', default='0.0.0.0')
-    parser.add_argument('--connect', type=str, nargs='+', metavar=('address', 'name'), help='Connect to the Colony at address')
+    parser.add_argument('--listen', type=str, nargs='?', metavar='address', help='Listen (default: %(default)s)',
+                        default='0.0.0.0')
+    parser.add_argument('--connect', type=str, nargs='+', metavar=('address', 'name'),
+                        help='Connect to the Colony at address')
     parser.add_argument('--port', type=int, help='port to use (default: %(default)s)', default=7777)
     parser.add_argument('simfile', type=argparse.FileType('r'), nargs='?')
     args = parser.parse_args()
@@ -17,12 +16,13 @@ if __name__ == "__main__":
     mycolony = None
     if args.connect is not None:
         print("slave mode")
-        mynest = Nest(address=args.connect[0], port=args.port, name=args.connect[1] if len(args.connect) > 1 else 'default')
+        mynest = Nest(address=args.connect[0], port=args.port,
+                      name=args.connect[1] if len(args.connect) > 1 else 'default')
         exit(mynest.exitcode)
 
     elif args.listen is not None:
         print("master mode")
-        mycolony = Colony(address=args.listen,port=args.port)
+        mycolony = Colony(address=args.listen, port=args.port)
 
         # continue to load simulation
 
@@ -30,8 +30,9 @@ if __name__ == "__main__":
         print('standalone mode')
         mycolony = Colony(address='/tmp/colony.sock')
         import time
+
         time.sleep(1)
-        mynest =  Nest(address='/tmp/colony.sock')
+        mynest = Nest(address='/tmp/colony.sock')
 
         # continue to load simulation
 
