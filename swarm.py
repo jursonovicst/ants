@@ -2,11 +2,11 @@
 
 import argparse
 from killthebeast import Colony, Nest
+import time
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='colony', description='Colony load tester')
-    parser.add_argument('--listen', type=str, nargs='?', metavar='address', help='Listen (default: %(default)s)',
-                        default='0.0.0.0')
+    parser.add_argument('--listen', type=str, nargs=1, metavar='address', help='Listen')
     parser.add_argument('--connect', type=str, nargs='+', metavar=('address', 'name'),
                         help='Connect to the Colony at address')
     parser.add_argument('--port', type=int, help='port to use (default: %(default)s)', default=7777)
@@ -29,17 +29,19 @@ if __name__ == "__main__":
     else:
         print('standalone mode')
         mycolony = Colony(address='/tmp/colony.sock')
-        import time
-
         time.sleep(1)
         mynest = Nest(address='/tmp/colony.sock')
 
         # continue to load simulation
 
-    # import simulation file
-    import simple as sim
 
-    sim.execute(mycolony)
+    # import simulation file
+    def execute(colony: Colony):
+        pass
+
+
+    exec(args.simfile.read())
+    execute(mycolony)
 
     # this will block
     mycolony.execute()
