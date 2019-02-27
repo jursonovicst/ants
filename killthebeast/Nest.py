@@ -3,6 +3,7 @@ from multiprocessing.connection import Client
 from killthebeast import Msg, Egg
 from threading import Event
 import sched, time
+import sys
 
 
 class Nest(Process):
@@ -17,7 +18,7 @@ class Nest(Process):
             self.start()
         except ConnectionRefusedError as err:
             print("Cannot connect to Colony: '%s'" % err)
-
+            sys.exit(1)
 
 
     def run(self):
