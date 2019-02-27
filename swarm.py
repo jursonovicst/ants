@@ -8,33 +8,37 @@ from killthebeast import Colony, Nest, Egg, Ant, HTTPAnt, ABRAnt
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='colony', description='Colony load tester')
-    parser.add_argument('--listen',  type=str, nargs='+', metavar=('address', 'port'), help='Do not establish a local nest, just controll remote nests (default: %(default)s)', default=None)
-    parser.add_argument('--connect', type=str, nargs='+', metavar=('address', 'port'), help='Connect to colony at address and port (default: %(default)s)', default=None)
+    parser.add_argument('--listen',  type=str, nargs='?', metavar=('address'), help='Listen (default: %(default)s)', default='0.0.0.0')
+    parser.add_argument('--connect', type=str, nargs='+', metavar=('address', 'name'), help='Connect to the Colony at address')
+    parser.add_argument('--port', type=int, help='port to use (default: %(default)s)', default=7777)
+    parser.add_argument('simfile', type=argparse.FileType('r'), nargs='?')
     args = parser.parse_args()
 
     mycolony = None
-    if args.listen is None and args.connect is None:
-        print("Single mode")
-        mycolony = Colony('/tmp/colony.sock')
-        mynest = Nest('/tmp/colony.sock')
+    if args.connect is not None:
+        print("slave mode")
+        mynest = Nest(address=args.connect[0], port=args.port, name=args.connect[1] if len(args.connect) > 1 else 'default')
+        exit(mynest.exitcode)
+
+    elif args.listen is not None:
+        print("master mode")
+        mycolony = Colony(address=args.listen,port=args.port)
+
+        # continue to load simulation
 
     else:
-        if args.listen is not None:
-            print("master mode")
-            mycolony = Colony(args.listen[0],int(args.listen[1]))
-        elif args.connect is not None:
-            print("slave mode")
-            mynest = Nest(args.connect[0],int(args.connect[1]))
-        else:
-            print("Incompatible mode")
-            exit(1)
+        print('standalone mode')
+        mycolony = Colony(address='/tmp/colony.sock')
+        import time
+        time.sleep(1)
+        mynest =  Nest(address='/tmp/colony.sock')
 
-    import time
-    time.sleep(5)
+        # continue to load simulation
 
-    mycolony.addegg(Egg(1, larv=Ant, name='1'))
-#    mycolony.addegg(Egg(2, larv=HTTPAnt, name='2', server="www.bme.hu", paths=["/tom"], delays=[3]))
-#    for i in range(3,100):
-#        mycolony.addegg(Egg(i, larv=ABRAnt, name='%d' % i, manifest=""))
+    # import simulation file
+    import simple as sim
 
+    sim.execute(mycolony)
+
+    # this will block
     mycolony.execute()
