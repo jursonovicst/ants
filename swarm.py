@@ -21,11 +21,9 @@ if __name__ == "__main__":
     else:
         print("master-slave mode")
         if args.listen is not None:
-            print("Creating colony listening on %s:%d" % (args.listen, args.port))
-            mycolony = Colony(1,1)
+            mycolony = Colony(args.listen[0],int(args.listen[1]))
         elif args.connect is not None:
-            print("Creating nest part of colony (%s:%d)" % (args.connect, args.port))
-            mynest = Nest(1,1)
+            mynest = Nest(args.connect[0],int(args.connect[1]))
         else:
             print("Incompatible mode")
             exit(1)
