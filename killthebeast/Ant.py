@@ -6,6 +6,8 @@ from urllib.parse import urlparse
 from lxml import etree
 import numpy as np
 import os
+from typing import Callable
+import random
 
 
 class Ant(Thread):
@@ -70,10 +72,13 @@ class ABRAnt(Ant):
     Smooth streaming
     """
 
-    def __init__(self, manifest, **kw):
+    def __init__(self, manifest, strategy, **kw):
+        assert isinstance(strategy, Callable), "Strategy must be callable: '%s'" % strategy
+
         super().__init__(**kw)
 
         self.schedulework(0, manifest)
+        self._strategy = strategy
 
     def work(self, *args):
         manifest = urlparse(args[0])
@@ -115,7 +120,6 @@ class ABRAnt(Ant):
                 # get the fragment url part
                 urltemplate = streamindex.get('Url')
                 assert urltemplate is not None, "empty urltemplate"
-                urltemplate = urltemplate.replace('{bitrate}', str(max(bitrates)))
 
                 c = streamindex.find("c[@t]")
                 ds = list(map(lambda e: int(e.get('d')), streamindex.findall("c")))
@@ -127,8 +131,12 @@ class ABRAnt(Ant):
                 assert len(cds) == int(streamindex.get('Chunks')) + 1, len(cds)
 
                 videoant = HTTPAnt(name="%s-vid" % self.name, server=manifest.netloc,
-                                   paths=list(map(lambda t: os.path.dirname(manifest.path) + "/" + urltemplate.replace(
-                                       '{start time}', str(t)), cds)),
+                                   paths=list(map(
+                                       lambda t: os.path.dirname(manifest.path) +
+                                                 "/" +
+                                                 urltemplate.replace('{start time}', str(t))
+                                                     .replace('{bitrate}', str(self._strategy(bitrates))),
+                                       cds)),
                                    delays=list(map(lambda d: d / timescale, cds))
                                    )
 
@@ -147,7 +155,6 @@ class ABRAnt(Ant):
                 # get the fragment url part
                 urltemplate = streamindex.get('Url')
                 assert urltemplate is not None, "empty urltemplate"
-                urltemplate = urltemplate.replace('{bitrate}', str(max(bitrates)))
 
                 c = streamindex.find("c[@t]")
                 ds = list(map(lambda e: int(e.get('d')), streamindex.findall("c")))
@@ -159,8 +166,12 @@ class ABRAnt(Ant):
                 assert len(cds) == int(streamindex.get('Chunks')) + 1, len(cds)
 
                 audioant = HTTPAnt(name="%s-aud" % self.name, server=manifest.netloc,
-                                   paths=list(map(lambda t: os.path.dirname(manifest.path) + "/" + urltemplate.replace(
-                                       '{start time}', str(t)), cds)),
+                                   paths=list(map(
+                                       lambda t: os.path.dirname(manifest.path) +
+                                                 "/" +
+                                                 urltemplate.replace('{start time}', str(t))
+                                                     .replace('{bitrate}', str(self._strategy(bitrates))),
+                                       cds)),
                                    delays=list(map(lambda d: d / timescale, cds))
                                    )
 
