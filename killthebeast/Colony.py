@@ -57,7 +57,7 @@ class Colony(Thread):
 
             while not self._stopevent.isSet():
                 conn = listener.accept()
-                self._log("accepts connection from %s" % listener.last_accepted)
+                self._log("accepts connection from %s" % (listener.last_accepted if port is None else ("%s:%d" % (address, port))))
                 self._connlock.acquire()
                 self._conns.append(conn)
                 self._connlock.release()
@@ -83,6 +83,8 @@ class Colony(Thread):
         self._log("exits")
 
     def _send(self, o):
+        assert self._conns, "No connection to send on"
+        print(self._conns)
         self._conns[self._connptr].send(o)
         self._connptr = (self._connptr + 1) % len(self._conns)
 

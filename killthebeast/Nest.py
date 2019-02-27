@@ -8,12 +8,17 @@ import sched, time
 class Nest(Process):
     def __init__(self, address, port=None, name='default'):
         super().__init__(name=name)
-        self._conn = Client(address=address if port is None else (address, port), family='AF_UNIX' if port is None else 'AF_INET')
+        try:
+            self._conn = Client(address=address if port is None else (address, port), family='AF_UNIX' if port is None else 'AF_INET')
 
-        self._stopevent = Event()
+            self._stopevent = Event()
 
-        self._scheduler = sched.scheduler(time.time, time.sleep)
-        self.start()
+            self._scheduler = sched.scheduler(time.time, time.sleep)
+            self.start()
+        except ConnectionRefusedError as err:
+            print("Cannot connect to Colony: '%s'" % err)
+
+
 
     def run(self):
         self._log("started")

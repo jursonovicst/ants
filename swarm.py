@@ -19,21 +19,22 @@ if __name__ == "__main__":
         mynest = Nest('/tmp/colony.sock')
 
     else:
-        print("master-slave mode")
         if args.listen is not None:
+            print("master mode")
             mycolony = Colony(args.listen[0],int(args.listen[1]))
         elif args.connect is not None:
+            print("slave mode")
             mynest = Nest(args.connect[0],int(args.connect[1]))
         else:
             print("Incompatible mode")
             exit(1)
 
     import time
-    time.sleep(1)
+    time.sleep(5)
 
     mycolony.addegg(Egg(1, larv=Ant, name='1'))
-    mycolony.addegg(Egg(2, larv=HTTPAnt, name='2', server="www.bme.hu", paths=["/tom"], delays=[3]))
-    for i in range(3,100):
-        mycolony.addegg(Egg(i, larv=ABRAnt, name='%d' % i, manifest=""))
+#    mycolony.addegg(Egg(2, larv=HTTPAnt, name='2', server="www.bme.hu", paths=["/tom"], delays=[3]))
+#    for i in range(3,100):
+#        mycolony.addegg(Egg(i, larv=ABRAnt, name='%d' % i, manifest=""))
 
     mycolony.execute()
