@@ -7,6 +7,7 @@ from lxml import etree
 import numpy as np
 import os
 from typing import Callable
+import chardet
 import random
 
 
@@ -16,22 +17,53 @@ class Ant(Thread):
     """
 
     def __init__(self, **kw):
-        super().__init__(**kw)
+        """
+        An ant does work regurarly.
+
+        Do not autostart here, otherwise it cannot be overloaded...
+        :param kw: keyword arguments to forward to the Thread class
+        """
+        super(Ant, self).__init__(**kw)
 
         self._scheduler = sched.scheduler(time.time, time.sleep)
 
     def run(self):
+        """
+        Try not to overload this...
+        :return:
+        """
         print("%s '%s' born" % (self.__class__.__name__, self.name))
 
         # process tasks, this will block
         self._scheduler.run()
 
+        # clean up stuff, if any
+        self.cleanup()
+
         print("%s '%s' die" % (self.__class__.__name__, self.name))
 
     def schedulework(self, at, *args):
+        """
+        Schedule work for the ant.
+        :param at: Time at work should be done
+        :param args: Arguments passed to the work() method.
+        :return:
+        """
         self._scheduler.enter(delay=at, priority=100, action=self.work, argument=args)
 
-    def work(self, *args, **kwargs):
+    def work(self, *args):
+        """
+        Overload this, this is where the work is happening.
+        :param args:
+        :return:
+        """
+        pass
+
+    def cleanup(self):
+        """
+        Called, when Ant dies to clean up stuff.
+        :return:
+        """
         pass
 
 
@@ -42,13 +74,12 @@ class HTTPAnt(Ant):
 
     def __init__(self, server: str, paths, delays, host: str = None, **kw):
         super(HTTPAnt, self).__init__(**kw)
-        assert len(paths) == len(delays), "length mismatch: %d / %d" % (len(paths), len(delays))
+        assert len(paths) == len(delays), "length mismatch: %d vs. %d" % (len(paths), len(delays))
 
         self._server = server
 
         for path, delay in zip(paths, delays):
             self.schedulework(delay, path)
-        #            print(path, delay)
 
         self._curl = pycurl.Curl()
         self._curl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
@@ -64,8 +95,7 @@ class HTTPAnt(Ant):
         # if int(self._curl.getinfo(pycurl.HTTP_CODE)) != 200:
         #    raise Exception("cannot load %s, return code: %d" % ("http://%s%s" % (self._server, path), self._curl.getinfo(pycurl.HTTP_CODE)))
 
-    def run(self):
-        super(HTTPAnt, self).run()
+    def cleanup(self):
         self._curl.close()
 
 
@@ -78,123 +108,122 @@ class ABRAnt(Ant):
         assert isinstance(strategy, Callable), "Strategy must be callable: '%s'" % strategy
         super(ABRAnt, self).__init__(**kw)
 
-        self.schedulework(0, server, manifestpath, strategy, host)
+        self._videocurl = pycurl.Curl()
+        self._audiocurl = pycurl.Curl()
+        self._videocurl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
+        self._audiocurl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
+        # fragmentsched = sched.scheduler(time.time, time.sleep)
 
-    def work(self, *args):
-        server = args[0]
-        manifestpath = args[1]
-        strategy = args[2]
-        host = args[3]
+        manifestcurl = pycurl.Curl()
 
-        videoant = None
-        audioant = None
-
-        mycurl = pycurl.Curl()
         if host is not None:
-            mycurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % host])
+            manifestcurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % host])
+            self._videocurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % host])
+            self._audiocurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % host])
+
         try:
-            mycurl.setopt(pycurl.URL, "http://%s%s" % (server, manifestpath))
+            manifestcurl.setopt(pycurl.URL, "http://%s%s" % (server, manifestpath))
             response = BytesIO()
-            mycurl.setopt(pycurl.WRITEDATA, response)
-            mycurl.perform()
+            manifestcurl.setopt(pycurl.WRITEDATA, response)
+            manifestcurl.perform()
 
-            if int(mycurl.getinfo(pycurl.HTTP_CODE)) != 200:
-                raise Exception("cannot load %s, return code: %d" % (mycurl.geturl(), mycurl.getinfo(pycurl.HTTP_CODE)))
+            if int(manifestcurl.getinfo(pycurl.HTTP_CODE)) != 200:
+                raise Exception(
+                    "cannot load %s, return code: %d" % (manifestcurl.geturl(), manifestcurl.getinfo(pycurl.HTTP_CODE)))
 
-            mycurl.close()
+            manifestcurl.close()
 
-            f = response.getvalue().decode('iso-8859-1').encode('ascii')
-
-            # parse XML
-            root = etree.fromstring(f)
+            # parse XML and fuck Microsoft!
+            charset = chardet.detect(response.getvalue())['encoding']
+            manifest = response.getvalue().decode(charset).encode(charset)
+            root = etree.fromstring(manifest)
 
             # validate manifest
             assert root.tag == 'SmoothStreamingMedia', "Invalid root tag: '%s'" % root.tag
             assert root.get('MajorVersion') == '2', "Invalid Major version: '%s'" % root.get('MajorVersion')
 
+            # get TimeScale
+            timescale = root.get('TimeScale', default='10000000')
+
             # get the StreamIndex for video
             streamindex = root.find("StreamIndex[@Type='video']")
             if streamindex is not None:
                 # get the video bitrates
-                bitrates = list(map(lambda ee: int(ee.get('Bitrate')), streamindex.findall('QualityLevel')))
-                assert len(bitrates) != 0, "Empty bitrates"
+                bitrates = list(map(lambda element: int(element.get('Bitrate')), streamindex.findall('QualityLevel')))
+                assert len(bitrates) == int(streamindex.get('QualityLevels')), "invalid bitrate count"
 
                 # get TimeScale
-                timescale = streamindex.get('TimeScale')
-                assert timescale is not None
-                timescale = int(timescale)
+                videotimescale = int(streamindex.get('TimeScale', default=timescale))
 
                 # get the fragment url part
                 urltemplate = streamindex.get('Url')
                 assert urltemplate is not None, "empty urltemplate"
 
-                c = streamindex.find("c[@t]")
+                # get event times
                 ds = list(map(lambda ee: int(ee.get('d')), streamindex.findall("c")))
-                assert np.std(ds) < np.average(ds) * 0.5, "deviation of d values are greater than 5%%: %f/%f" % (
-                    np.std(ds), np.average(ds))
+                # add first fragment's timestamp
+                ds.insert(int(streamindex.find('c').get('t', default='0')), 0)
+                # duration of last fragment is not needed
+                del ds[-1]
+                assert len(ds) == int(streamindex.get('Chunks')), "fragment number mismatch: %d vs. %d" % (
+                    len(ds), int(streamindex.get('Chunks')))
 
-                ds.insert(int(c.get("t")), 0)
-                cds = np.cumsum(ds)
-                assert len(cds) == int(streamindex.get('Chunks')) + 1, len(cds)
-
-                videoant = HTTPAnt(name="%s-vid" % self.name,
-                                   server=server,
-                                   paths=list(map(
-                                       lambda t: os.path.dirname(manifestpath) +
-                                                 "/" +
-                                                 urltemplate.replace('{start time}', str(t))
-                                                     .replace('{bitrate}', str(strategy(bitrates))),
-                                       cds)),
-                                   delays=list(map(lambda d: d / timescale, cds)),
-                                   host=host
-                                   )
+                for cd in np.cumsum(ds):
+                    self.schedulework(float(cd) / videotimescale,
+                                      self._videocurl,
+                                      server,
+                                      os.path.dirname(manifestpath) + "/" + urltemplate.replace(
+                                          '{start time}', str(cd)).replace(
+                                          '{bitrate}', str(strategy(bitrates)))
+                                      )
 
             # get the StreamIndex for audio
             streamindex = root.find("StreamIndex[@Type='audio']")
             if streamindex is not None:
                 # get the video bitrates
-                bitrates = list(map(lambda ee: int(ee.get('Bitrate')), streamindex.findall('QualityLevel')))
+                bitrates = list(map(lambda element: int(element.get('Bitrate')), streamindex.findall('QualityLevel')))
                 assert len(bitrates) != 0, "Empty bitrates"
 
                 # get TimeScale
-                timescale = streamindex.get('TimeScale')
-                assert timescale is not None
-                timescale = int(timescale)
+                audiotimescale = int(streamindex.get('TimeScale', default=timescale))
 
                 # get the fragment url part
                 urltemplate = streamindex.get('Url')
                 assert urltemplate is not None, "empty urltemplate"
 
-                c = streamindex.find("c[@t]")
+                # get event times
                 ds = list(map(lambda ee: int(ee.get('d')), streamindex.findall("c")))
-                assert np.std(ds) < np.average(ds) * 0.5, "deviation of d values are greater than 5%%: %f/%f" % (
-                    np.std(ds), np.average(ds))
+                # add first fragment's timestamp
+                ds.insert(int(streamindex.find('c').get('t', default='0')), 0)
+                # duration of last fragment is not needed
+                del ds[-1]
+                assert len(ds) == int(streamindex.get('Chunks')), "fragment number mismatch: %d vs. %d" % (
+                    len(ds), int(streamindex.get('Chunks')))
 
-                ds.insert(int(c.get("t")), 0)
-                cds = np.cumsum(ds)
-                assert len(cds) == int(streamindex.get('Chunks')) + 1, len(cds)
-
-                audioant = HTTPAnt(name="%s-aud" % self.name,
-                                   server=server,
-                                   paths=list(map(
-                                       lambda t: os.path.dirname(manifestpath) +
-                                                 "/" +
-                                                 urltemplate.replace('{start time}', str(t))
-                                                     .replace('{bitrate}', str(strategy(bitrates))),
-                                       cds)),
-                                   delays=list(map(lambda d: d / timescale, cds)),
-                                   host=host
-                                   )
-
-            videoant.start()
-            audioant.start()
-
-            videoant.join()
-            audioant.join()
+                for cd in np.cumsum(ds):
+                    self.schedulework(float(cd) / audiotimescale,
+                                      self._audiocurl,
+                                      server,
+                                      os.path.dirname(manifestpath) + "/" + urltemplate.replace(
+                                          '{start time}', str(cd)).replace(
+                                          '{bitrate}', str(strategy(bitrates)))
+                                      )
 
         except pycurl.error as err:
             print("cannot load %s, error message: %s" % ("http://%s%s" % (server, manifestpath), err))
-            mycurl.close()
         except Exception as e:
             print(e)
-            mycurl.close()
+
+        manifestcurl.close()
+
+    def work(self, *args):
+        curl = args[0]
+        server = args[1]
+        path = args[2]
+
+        curl.setopt(pycurl.URL, "http://%s%s" % (server, path))
+        curl.perform()
+
+    def cleanup(self):
+        self._videocurl.close()
+        self._audiocurl.close()
