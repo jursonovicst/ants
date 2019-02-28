@@ -23,21 +23,32 @@ if __name__ == "__main__":
         for i in range(0, (multiprocessing.cpu_count() - 2) if args.nestcount is 0 else args.nestcount):
             mynests.append(Nest(address=args.connect[0], port=args.port,
                                 name="%s_%d" % (args.connect[1] if len(args.connect) > 1 else 'default', i)))
-        exit(any(map(lambda nest: nest.exitcode, mynests)))
+
+        # wait till all ends
+        for nest in mynests:
+            if nest.is_alive():
+                nest.join()
+        exit(0)
 
     elif args.listen is not None:
         print("master mode")
         mycolony = Colony(address=args.listen, port=args.port)
+        time.sleep(1)
 
         # wait for nests to connect
         input("Press Enter to continue...")
+
         # continue to load simulation
 
     else:
         print('standalone mode')
-        mycolony = Colony(address='/tmp/colony.sock')
+        mycolony = Colony(address='127.0.0.1', port=args.port)
         time.sleep(1)
-        mynest = Nest(address='/tmp/colony.sock')
+
+        for i in range(0, (multiprocessing.cpu_count() - 2) if args.nestcount is 0 else args.nestcount):
+            nest = Nest(address='127.0.0.1', port=args.port, name="%s_%d" % ('default', i))
+            mynests.append(nest)
+        time.sleep(1)
 
         # continue to load simulation
 
@@ -45,8 +56,20 @@ if __name__ == "__main__":
     def execute(colony: Colony):
         pass
 
+
     exec(args.simfile.read())
     execute(mycolony)
 
-    # this will block
+    # execute simulation
     mycolony.execute()
+
+    # wait till ends
+    try:
+        mycolony.join()
+    except KeyboardInterrupt:
+        mycolony.terminate()
+
+    # wait for nests to terminate
+    for nest in mynests:
+        if nest.is_alive():
+            nest.join()
