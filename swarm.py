@@ -6,7 +6,7 @@ import time
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog='colony', description='Colony load tester')
-    parser.add_argument('--listen', type=str, nargs=1, metavar='address', help='Listen')
+    parser.add_argument('--listen', type=str, metavar='address', help='Listen')
     parser.add_argument('--connect', type=str, nargs='+', metavar=('address', 'name'),
                         help='Connect to the Colony at address')
     parser.add_argument('--port', type=int, help='port to use (default: %(default)s)', default=7777)
@@ -24,6 +24,8 @@ if __name__ == "__main__":
         print("master mode")
         mycolony = Colony(address=args.listen, port=args.port)
 
+        # wait for nests to connect
+        input("Press Enter to continue...")
         # continue to load simulation
 
     else:
@@ -36,6 +38,7 @@ if __name__ == "__main__":
 
 
     # import simulation file
+
     def execute(colony: Colony):
         pass
 
