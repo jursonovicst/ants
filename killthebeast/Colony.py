@@ -1,4 +1,4 @@
-from threading import Thread, Event, Lock
+from threading import Thread, Event  # , Lock
 from multiprocessing.connection import Listener, wait
 from killthebeast import Egg
 
@@ -36,12 +36,12 @@ class Cmd(object):
 
 class Colony(Thread):
 
-    def __init__(self, address, port=None):
-        super().__init__()
+    def __init__(self, address: str, port: int):
+        super(Colony, self).__init__(name='Colony')
 
         self._conns = []
         self._connptr = 0
-        self._connlock = Lock()
+        #        self._connlock = Lock()
 
         self._stopevent = Event()
 
@@ -52,17 +52,15 @@ class Colony(Thread):
 
     def _listen(self, address, port):
         try:
-            with Listener(address=address if port is None else (address, port),
-                          family='AF_UNIX' if port is None else 'AF_INET') as listener:
+            with Listener(address=(address, port)) as listener:
                 self._log("listening on %s" % (address if port is None else ("%s:%d" % (address, port))))
 
                 while not self._stopevent.isSet():
                     conn = listener.accept()
-                    self._log("connection accepted %s" % (
-                        ("on '%s'" % address) if port is None else ("%s:%d" % (address, port))))
-                    self._connlock.acquire()
+                    self._log("connection accepted from %s:%d" % listener.last_accepted)
+                    #                    self._connlock.acquire()
                     self._conns.append(conn)
-                    self._connlock.release()
+        #                    self._connlock.release()
 
         except KeyboardInterrupt:
             print("SSS")
@@ -74,7 +72,7 @@ class Colony(Thread):
     def run(self):
         # self._log("waiting for messages")
         while not self._stopevent.isSet():
-            self._connlock.acquire()
+            #            self._connlock.acquire()
             if self._conns:
                 for conn in wait(self._conns, timeout=0.1):
                     try:
@@ -87,7 +85,7 @@ class Colony(Thread):
                             # no more connection
                             self._stopevent.set()
 
-            self._connlock.release()
+        #            self._connlock.release()
 
         self._listenerthread.join(5)
         self._log("exited")
