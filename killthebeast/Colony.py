@@ -102,12 +102,8 @@ class Colony(Thread):
     def execute(self):
         self._sendtoall(Cmd.kick())
 
-        # wait for the stop event (all nests quit)
-        try:
-            self._stopevent.wait()
-        except KeyboardInterrupt:
-            self.terminate()
-            self._stopevent.set()
+    def wait(self):
+        self._stopevent.wait()
 
     def terminate(self):
         self._sendtoall(Cmd.terminate())
