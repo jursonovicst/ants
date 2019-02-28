@@ -41,8 +41,8 @@ class HTTPAnt(Ant):
     Accesses list of requests.
     """
 
-    def __init__(self, server, paths, delays, **kw):
-        super().__init__(**kw)
+    def __init__(self, server: str, paths, delays, host: str = None, **kw):
+        super(HTTPAnt, self).__init__(**kw)
         assert len(paths) == len(delays), "length mismatch: %d / %d" % (len(paths), len(delays))
 
         self._server = server
@@ -53,6 +53,8 @@ class HTTPAnt(Ant):
 
         self._curl = pycurl.Curl()
         self._curl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
+        if host is not None:
+            self._curl.setopt(pycurl.HTTPHEADER, ['Host: %s' % host])
 
     def work(self, *args):
         path = args[0]
@@ -64,7 +66,7 @@ class HTTPAnt(Ant):
         #    raise Exception("cannot load %s, return code: %d" % ("http://%s%s" % (self._server, path), self._curl.getinfo(pycurl.HTTP_CODE)))
 
     def run(self):
-        super().run()
+        super(HTTPAnt, self).run()
         self._curl.close()
 
 
@@ -73,21 +75,23 @@ class ABRAnt(Ant):
     Smooth streaming
     """
 
-    def __init__(self, manifest, strategy, **kw):
+    def __init__(self, server: str, manifestpath, strategy, host: str = None, **kw):
         assert isinstance(strategy, Callable), "Strategy must be callable: '%s'" % strategy
+        super(ABRAnt, self).__init__(**kw)
 
-        super().__init__(**kw)
-
-        self.schedulework(0, manifest)
-        self._strategy = strategy
+        self.schedulework(0, "http://%s%s" % (server, manifestpath), strategy, host)
 
     def work(self, *args):
         manifest = urlparse(args[0])
+        strategy = args[1]
+        host = args[2]
 
         videoant = None
         audioant = None
 
         mycurl = pycurl.Curl()
+        if host is not None:
+            mycurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % host])
         try:
             mycurl.setopt(pycurl.URL, manifest.geturl())
             response = BytesIO()
@@ -138,7 +142,7 @@ class ABRAnt(Ant):
                                        lambda t: os.path.dirname(manifest.path) +
                                                  "/" +
                                                  urltemplate.replace('{start time}', str(t))
-                                                     .replace('{bitrate}', str(self._strategy(bitrates))),
+                                                     .replace('{bitrate}', str(strategy(bitrates))),
                                        cds)),
                                    delays=list(map(lambda d: d / timescale, cds))
                                    )
@@ -173,7 +177,7 @@ class ABRAnt(Ant):
                                        lambda t: os.path.dirname(manifest.path) +
                                                  "/" +
                                                  urltemplate.replace('{start time}', str(t))
-                                                     .replace('{bitrate}', str(self._strategy(bitrates))),
+                                                     .replace('{bitrate}', str(strategy(bitrates))),
                                        cds)),
                                    delays=list(map(lambda d: d / timescale, cds))
                                    )
