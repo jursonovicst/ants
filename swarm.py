@@ -20,7 +20,7 @@ if __name__ == "__main__":
     mynests = []
     if args.connect is not None:
         print("slave mode")
-        for i in range(0, multiprocessing.cpu_count() - 2):
+        for i in range(0, (multiprocessing.cpu_count() - 2) if args.nestcount is None else args.nestcount):
             mynests.append(Nest(address=args.connect[0], port=args.port,
                                 name="%s_%d" % (args.connect[1] if len(args.connect) > 1 else 'default', i)))
         exit(any(map(lambda nest: nest.exitcode, mynests)))
@@ -41,11 +41,9 @@ if __name__ == "__main__":
 
         # continue to load simulation
 
-    # import simulation file
 
     def execute(colony: Colony):
         pass
-
 
     exec(args.simfile.read())
     execute(mycolony)
