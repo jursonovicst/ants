@@ -102,9 +102,6 @@ class Colony(Thread):
     def execute(self):
         self._sendtoall(Cmd.kick())
 
-    def wait(self):
-        self._stopevent.wait()
-
     def terminate(self):
         self._sendtoall(Cmd.terminate())
 
