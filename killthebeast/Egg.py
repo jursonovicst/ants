@@ -1,5 +1,4 @@
 from killthebeast import Ant
-import time
 from typing import Type
 
 
@@ -24,7 +23,6 @@ class Egg(object):
         print("%s hatched" % self.__class__.__name__)
         ant = self._larv(**self._kwargs)
         ant.start()
-        return ant
 
     def __str__(self):
         return "%s at %.2f with '%s' larv" % (self.__class__.__name__, self._at, self._larv.__name__)
