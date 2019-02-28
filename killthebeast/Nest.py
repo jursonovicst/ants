@@ -2,14 +2,15 @@ from multiprocessing import Process
 from multiprocessing.connection import Client
 from killthebeast import Msg
 from threading import Event
-import sched, time
+import sched
+import time
 import sys
 import resource
 
 
 class Nest(Process):
     def __init__(self, address, port=None, name='default'):
-        super().__init__(name=name)
+        super(Nest, self).__init__(name=name)
         try:
             self._conn = Client(address=address if port is None else (address, port),
                                 family='AF_UNIX' if port is None else 'AF_INET')
@@ -18,6 +19,7 @@ class Nest(Process):
 
             self._scheduler = sched.scheduler(time.time, time.sleep)
             self.start()
+
         except ConnectionRefusedError as err:
             print("Cannot connect to Colony: '%s'" % err)
             sys.exit(1)
