@@ -21,7 +21,7 @@ class Egg(object):
         return self._larv
 
     def hatch(self):
-        print("%s hatched")
+        print("%s hatched" % self.__class__.__name__)
         ant = self._larv(**self._kwargs)
         ant.start()
         return ant
