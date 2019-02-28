@@ -3,7 +3,6 @@ import sched
 import time
 from io import BytesIO
 import pycurl
-from urllib.parse import urlparse
 from lxml import etree
 import numpy as np
 import os
@@ -79,12 +78,13 @@ class ABRAnt(Ant):
         assert isinstance(strategy, Callable), "Strategy must be callable: '%s'" % strategy
         super(ABRAnt, self).__init__(**kw)
 
-        self.schedulework(0, "http://%s%s" % (server, manifestpath), strategy, host)
+        self.schedulework(0, server, manifestpath, strategy, host)
 
     def work(self, *args):
-        manifest = urlparse(args[0])
-        strategy = args[1]
-        host = args[2]
+        server = args[0]
+        manifestpath = args[1]
+        strategy = args[2]
+        host = args[3]
 
         videoant = None
         audioant = None
@@ -93,7 +93,7 @@ class ABRAnt(Ant):
         if host is not None:
             mycurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % host])
         try:
-            mycurl.setopt(pycurl.URL, manifest.geturl())
+            mycurl.setopt(pycurl.URL, "http://%s%s" % (server, manifestpath))
             response = BytesIO()
             mycurl.setopt(pycurl.WRITEDATA, response)
             mycurl.perform()
@@ -137,14 +137,16 @@ class ABRAnt(Ant):
                 cds = np.cumsum(ds)
                 assert len(cds) == int(streamindex.get('Chunks')) + 1, len(cds)
 
-                videoant = HTTPAnt(name="%s-vid" % self.name, server=manifest.netloc,
+                videoant = HTTPAnt(name="%s-vid" % self.name,
+                                   server=server,
                                    paths=list(map(
-                                       lambda t: os.path.dirname(manifest.path) +
+                                       lambda t: os.path.dirname(manifestpath) +
                                                  "/" +
                                                  urltemplate.replace('{start time}', str(t))
                                                      .replace('{bitrate}', str(strategy(bitrates))),
                                        cds)),
-                                   delays=list(map(lambda d: d / timescale, cds))
+                                   delays=list(map(lambda d: d / timescale, cds)),
+                                   host=host
                                    )
 
             # get the StreamIndex for audio
@@ -172,14 +174,16 @@ class ABRAnt(Ant):
                 cds = np.cumsum(ds)
                 assert len(cds) == int(streamindex.get('Chunks')) + 1, len(cds)
 
-                audioant = HTTPAnt(name="%s-aud" % self.name, server=manifest.netloc,
+                audioant = HTTPAnt(name="%s-aud" % self.name,
+                                   server=server,
                                    paths=list(map(
-                                       lambda t: os.path.dirname(manifest.path) +
+                                       lambda t: os.path.dirname(manifestpath) +
                                                  "/" +
                                                  urltemplate.replace('{start time}', str(t))
                                                      .replace('{bitrate}', str(strategy(bitrates))),
                                        cds)),
-                                   delays=list(map(lambda d: d / timescale, cds))
+                                   delays=list(map(lambda d: d / timescale, cds)),
+                                   host=host
                                    )
 
             videoant.start()
@@ -189,7 +193,7 @@ class ABRAnt(Ant):
             audioant.join()
 
         except pycurl.error as err:
-            print("cannot load %s, error message: %s" % (manifest.geturl(), err))
+            print("cannot load %s, error message: %s" % ("http://%s%s" % (server, manifestpath), err))
             mycurl.close()
         except Exception as e:
             print(e)
