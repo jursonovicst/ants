@@ -23,7 +23,7 @@ class Nest(Process):
             sys.exit(1)
 
     def run(self):
-        self._log("started, max open files: '%d'" % resource.getrlimit(resource.RLIMIT_NOFILE))
+        self._log("started, max open files: '%d %d'" % resource.getrlimit(resource.RLIMIT_NOFILE))
         while not self._stopevent.isSet():
             try:
                 o = self._conn.recv()
