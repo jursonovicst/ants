@@ -1,5 +1,6 @@
 from threading import Thread
-import sched, time
+import sched
+import time
 from io import BytesIO
 import pycurl
 from urllib.parse import urlparse
@@ -94,7 +95,9 @@ class ABRAnt(Ant):
             mycurl.perform()
 
             if int(mycurl.getinfo(pycurl.HTTP_CODE)) != 200:
-                raise Exception("cannot load %s, return code: %d" % (mycurl.get, mycurl.getinfo(pycurl.HTTP_CODE)))
+                raise Exception("cannot load %s, return code: %d" % (mycurl.geturl(), mycurl.getinfo(pycurl.HTTP_CODE)))
+
+            mycurl.close()
 
             f = response.getvalue().decode('iso-8859-1').encode('ascii')
 
@@ -109,7 +112,7 @@ class ABRAnt(Ant):
             streamindex = root.find("StreamIndex[@Type='video']")
             if streamindex is not None:
                 # get the video bitrates
-                bitrates = list(map(lambda e: int(e.get('Bitrate')), streamindex.findall('QualityLevel')))
+                bitrates = list(map(lambda ee: int(ee.get('Bitrate')), streamindex.findall('QualityLevel')))
                 assert len(bitrates) != 0, "Empty bitrates"
 
                 # get TimeScale
@@ -122,7 +125,7 @@ class ABRAnt(Ant):
                 assert urltemplate is not None, "empty urltemplate"
 
                 c = streamindex.find("c[@t]")
-                ds = list(map(lambda e: int(e.get('d')), streamindex.findall("c")))
+                ds = list(map(lambda ee: int(ee.get('d')), streamindex.findall("c")))
                 assert np.std(ds) < np.average(ds) * 0.5, "deviation of d values are greater than 5%%: %f/%f" % (
                     np.std(ds), np.average(ds))
 
@@ -144,7 +147,7 @@ class ABRAnt(Ant):
             streamindex = root.find("StreamIndex[@Type='audio']")
             if streamindex is not None:
                 # get the video bitrates
-                bitrates = list(map(lambda e: int(e.get('Bitrate')), streamindex.findall('QualityLevel')))
+                bitrates = list(map(lambda ee: int(ee.get('Bitrate')), streamindex.findall('QualityLevel')))
                 assert len(bitrates) != 0, "Empty bitrates"
 
                 # get TimeScale
@@ -157,7 +160,7 @@ class ABRAnt(Ant):
                 assert urltemplate is not None, "empty urltemplate"
 
                 c = streamindex.find("c[@t]")
-                ds = list(map(lambda e: int(e.get('d')), streamindex.findall("c")))
+                ds = list(map(lambda ee: int(ee.get('d')), streamindex.findall("c")))
                 assert np.std(ds) < np.average(ds) * 0.5, "deviation of d values are greater than 5%%: %f/%f" % (
                     np.std(ds), np.average(ds))
 
@@ -175,17 +178,15 @@ class ABRAnt(Ant):
                                    delays=list(map(lambda d: d / timescale, cds))
                                    )
 
+            videoant.start()
+            audioant.start()
+
+            videoant.join()
+            audioant.join()
+
         except pycurl.error as err:
             print("cannot load %s, error message: %s" % (manifest.geturl(), err))
-        finally:
             mycurl.close()
-
-        print("Downloading manifest %s" % manifest.geturl())
-
-        videoant.start()
-        audioant.start()
-
-        videoant.join()
-        audioant.join()
-
-        # done
+        except Exception as e:
+            print(e)
+            mycurl.close()
