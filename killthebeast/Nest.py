@@ -4,6 +4,7 @@ from killthebeast import Msg
 from threading import Event
 import sched, time
 import sys
+import resource
 
 
 class Nest(Process):
@@ -22,7 +23,7 @@ class Nest(Process):
             sys.exit(1)
 
     def run(self):
-        self._log("started")
+        self._log("started, max open files: '%d'" % resource.getrlimit(resource.RLIMIT_NOFILE))
         while not self._stopevent.isSet():
             try:
                 o = self._conn.recv()
