@@ -1,4 +1,4 @@
-from ants import Ant
+from ants import Ant, Nest
 from typing import Type
 
 
@@ -19,10 +19,16 @@ class Egg(object):
     def larv(self):
         return self._larv
 
-    def hatch(self):
+    def hatch(self, nest: Nest):
+        """
+
+        :param nest: the nest instance, in which the egg hatched.
+        :return:
+        """
         print("%s hatched" % self.__class__.__name__)
-        ant = self._larv(**self._kwargs)
-        ant.start()
+
+        # create ant and add to its nest, nest will start it...
+        nest.ant = self._larv(**self._kwargs)
 
     def __str__(self):
         return "%s at %.2f with '%s' larv" % (self.__class__.__name__, self._at, self._larv.__name__)

@@ -13,6 +13,7 @@ class Nest(Process):
     Represents a group of ants. It is realised by a Process class. A host run one nest per CPU core by default.
     Use the --nextcount switch to change it.
     """
+
     def __init__(self, address, port=None, name='default'):
         super(Nest, self).__init__(name=name)
         try:
@@ -20,6 +21,7 @@ class Nest(Process):
                                 family='AF_UNIX' if port is None else 'AF_INET')
 
             self._stopevent = Event()
+            self._ants = []
 
             self._scheduler = sched.scheduler(time.time, time.sleep)
             self.start()
@@ -28,6 +30,15 @@ class Nest(Process):
             print("Cannot connect to Colony: '%s'" % err)
             sys.exit(1)
 
+    @property
+    def ant(self):
+        return None
+
+    @ant.setter
+    def ant(self, ant):
+        self._ants.append(ant)
+        ant.start()
+
     def run(self):
         self._log("started, max open files: '%d %d'" % resource.getrlimit(resource.RLIMIT_NOFILE))
         while not self._stopevent.isSet():
@@ -35,7 +46,7 @@ class Nest(Process):
                 o = self._conn.recv()
 
                 if o.__class__.__name__ == 'Egg':
-                    self._scheduler.enter(delay=o.at, priority=1, action=o.hatch)
+                    self._scheduler.enter(delay=o.at, priority=1, action=o.hatch, argument=self)
                     self._log("egg with larv '%s' to hatch at %.2f" % (o.larv, o.at))
                 elif o.__class__.__name__ == 'Cmd':
                     if o.iskick():
