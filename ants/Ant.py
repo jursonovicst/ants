@@ -141,6 +141,7 @@ class ABRAnt(Ant):
             # validate manifest
             assert root.tag == 'SmoothStreamingMedia', "Invalid root tag: '%s'" % root.tag
             assert root.get('MajorVersion') == '2', "Invalid Major version: '%s'" % root.get('MajorVersion')
+            assert root.get('IsLive', default="false") != "true", "Live manifests are not supported"
 
             # get TimeScale
             timescale = root.get('TimeScale', default='10000000')
