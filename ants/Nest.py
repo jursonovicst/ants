@@ -1,6 +1,6 @@
+from ants import Msg
 from multiprocessing import Process
 from multiprocessing.connection import Client
-from ants import Msg
 from threading import Event
 import sched
 import time
@@ -46,7 +46,7 @@ class Nest(Process):
                 o = self._conn.recv()
 
                 if o.__class__.__name__ == 'Egg':
-                    self._scheduler.enter(delay=o.at, priority=1, action=o.hatch, argument=self)
+                    self._scheduler.enter(delay=o.at, priority=1, action=o.hatch, argument=(self,))
                     self._log("egg with larv '%s' to hatch at %.2f" % (o.larv, o.at))
                 elif o.__class__.__name__ == 'Cmd':
                     if o.iskick():
