@@ -1,11 +1,12 @@
-from ants import Ant, Nest
+from ants import Nest
 from typing import Type
 
 
 class Egg(object):
     def __init__(self, at: float, larv: Type, **kwargs):
         assert at >= 0, "Egg cannot hatch in the past: %f" % at
-        assert larv.__class__.__name__ == Ant.__class__.__name__, "Only Ant can hatch from an egg: %s" % larv
+        # TODO: fix this
+        # assert larv.__name__ == Ant.__class__.__name__, "Only Ant can hatch from an egg: %s vs. %s" % (larv.__name__, Ant.__name__)
 
         self._at = at
         self._larv = larv
@@ -25,8 +26,6 @@ class Egg(object):
         :param nest: the nest instance, in which the egg hatched.
         :return:
         """
-        print("%s hatched" % self.__class__.__name__)
-
         # create ant and add to its nest, nest will start it...
         nest.ant = self._larv(**self._kwargs)
 
