@@ -9,6 +9,10 @@ import resource
 
 
 class Nest(Process):
+    """
+    Represents a group of ants. It is realised by a Process class. A host run one nest per CPU core by default.
+    Use the --nextcount switch to change it.
+    """
     def __init__(self, address, port=None, name='default'):
         super(Nest, self).__init__(name=name)
         try:
