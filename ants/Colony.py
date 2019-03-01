@@ -1,6 +1,6 @@
 from threading import Thread, Event  # , Lock
 from multiprocessing.connection import Listener, wait
-from killthebeast import Egg
+from ants import Egg
 
 
 class Msg(object):

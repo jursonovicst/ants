@@ -1,4 +1,4 @@
-from killthebeast import Ant
+from ants import Ant
 from typing import Type
 
 

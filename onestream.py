@@ -1,4 +1,4 @@
-from killthebeast import Egg, ABRAnt, Queen
+from ants import Egg, ABRAnt, Queen
 
 
 class Simplequeen(Queen):

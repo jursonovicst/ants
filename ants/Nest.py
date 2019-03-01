@@ -1,6 +1,6 @@
 from multiprocessing import Process
 from multiprocessing.connection import Client
-from killthebeast import Msg
+from ants import Msg
 from threading import Event
 import sched
 import time

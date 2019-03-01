@@ -1,7 +1,7 @@
 #!python3
 
 import argparse
-from killthebeast import Colony, Nest, Queen
+from ants import Colony, Nest, Queen
 import time
 import multiprocessing
 
