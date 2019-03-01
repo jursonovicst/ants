@@ -1,7 +1,7 @@
 #!python3
 
 import argparse
-from killthebeast import Colony, Nest
+from killthebeast import Colony, Nest, Queen
 import time
 import multiprocessing
 
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('simfile', type=argparse.FileType('r'), nargs='?')
     args = parser.parse_args()
 
-    mycolony = None
+    colony = None
     mynests = []
     if args.connect is not None:
         print("slave mode")
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     elif args.listen is not None:
         print("master mode")
-        mycolony = Colony(address=args.listen, port=args.port)
+        colony = Colony(address=args.listen, port=args.port)
         time.sleep(1)
 
         # wait for nests to connect
@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     else:
         print('standalone mode')
-        mycolony = Colony(address='127.0.0.1', port=args.port)
+        colony = Colony(address='127.0.0.1', port=args.port)
         time.sleep(1)
 
         for i in range(0, (multiprocessing.cpu_count() - 2) if args.nestcount is 0 else args.nestcount):
@@ -52,22 +52,25 @@ if __name__ == "__main__":
 
         # continue to load simulation
 
-
-    def execute(colony: Colony):
-        pass
-
-
+    # load simulation Queen
     exec(args.simfile.read())
-    execute(mycolony)
+    if len(Queen.__subclasses__()) != 1:
+        raise SyntaxError("Simulation file '%s' must contain exactly one subclass of Queen, found: %s" % (
+            args.simfile.name, list(map(lambda cls: cls.__name__, Queen.__subclasses__()))))
+
+    # lay the eggs
+    simqueen = Queen.__subclasses__()[0]()
+    for egg in simqueen.layeggs():
+        colony.addegg(egg)
 
     # execute simulation
-    mycolony.execute()
+    colony.execute()
 
     # wait till ends
     try:
-        mycolony.join()
+        colony.join()
     except KeyboardInterrupt:
-        mycolony.terminate()
+        colony.terminate()
 
     # wait for nests to terminate
     for nest in mynests:
