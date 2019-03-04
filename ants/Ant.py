@@ -13,34 +13,18 @@ import random
 
 class Ant(Thread):
     """
-    A template, does not do anything.
+    An ant template, does not do anything.
     """
 
     def __init__(self, **kw):
         """
-        An ant does work regurarly.
-
-        Do not autostart here, otherwise it cannot be overloaded...
-        :param kw: keyword arguments to forward to the Thread class
+        An ant does regular work. You may overload this method.
+        :param kw: keyword arguments passed to the Thread class
         """
         super(Ant, self).__init__(**kw)
 
+        # Ant's scheduler to start tasks.
         self._scheduler = sched.scheduler(time.time, time.sleep)
-
-    def run(self):
-        """
-        Try not to overload this...
-        :return:
-        """
-        print("%s '%s' born" % (self.__class__.__name__, self.name))
-
-        # process tasks, this will block
-        self._scheduler.run()
-
-        # clean up stuff, if any
-        self.cleanup()
-
-        print("%s '%s' die" % (self.__class__.__name__, self.name))
 
     def schedulework(self, at, *args):
         """
@@ -51,25 +35,49 @@ class Ant(Thread):
         """
         self._scheduler.enter(delay=at, priority=100, action=self.work, argument=args)
 
-    def work(self, *args):
+    def run(self):
         """
-        Overload this, this is where the work is happening.
-        :param args:
-        :return:
+        Do not overload this function, overload work() instead.
+        """
+        print("%s '%s' born" % (self.__class__.__name__, self.name))
+
+        # run init tasks before
+        try:
+            self.before()
+        except Exception as e:
+            print("%s '%s' work initialization error: %s" % (self.__class__.__name__, self.name, str(e)))
+
+        # process tasks, this will block till end of simulation or till interrupt.
+        self._scheduler.run()
+
+        # clean up stuff, if any
+        self.after()
+
+        print("%s '%s' die" % (self.__class__.__name__, self.name))
+
+    def before(self):
+        """
+        Called before start working. You may overload this method.
         """
         pass
 
-    def cleanup(self):
+    def work(self, *args):
         """
-        Called, when Ant dies to clean up stuff.
-        :return:
+        Overload this to define your work.
+        :param args: optional arguments for your implementation.
+        """
+        pass
+
+    def after(self):
+        """
+        Called after finished processing the tasks to clean up stuff. You may overload this method.
         """
         pass
 
 
 class HTTPAnt(Ant):
     """
-    Accesses list of requests.
+    An example Ant implementation for accessing a list of HTTP URLs.
     """
 
     def __init__(self, server: str, paths, delays, host: str = None, **kw):
@@ -77,14 +85,18 @@ class HTTPAnt(Ant):
         assert len(paths) == len(delays), "length mismatch: %d vs. %d" % (len(paths), len(delays))
 
         self._server = server
+        self._host = host
+        self._curl = None
 
+        # schedule work
         for path, delay in zip(paths, delays):
             self.schedulework(delay, path)
 
+    def before(self):
         self._curl = pycurl.Curl()
         self._curl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
-        if host is not None:
-            self._curl.setopt(pycurl.HTTPHEADER, ['Host: %s' % host])
+        if self._host is not None:
+            self._curl.setopt(pycurl.HTTPHEADER, ['Host: %s' % self._host])
 
     def work(self, *args):
         path = args[0]
@@ -92,34 +104,41 @@ class HTTPAnt(Ant):
         self._curl.setopt(pycurl.URL, "http://%s%s" % (self._server, path))
         self._curl.perform()
 
+        # TODO: reporting
         # if int(self._curl.getinfo(pycurl.HTTP_CODE)) != 200:
         #    raise Exception("cannot load %s, return code: %d" % ("http://%s%s" % (self._server, path), self._curl.getinfo(pycurl.HTTP_CODE)))
 
-    def cleanup(self):
+    def after(self):
         self._curl.close()
 
 
 class ABRAnt(Ant):
     """
-    Smooth streaming
+    An Example ABR streaming Ant implementation, it will open an ABR stream, and download streaming fragments.
     """
 
     def __init__(self, server: str, manifestpath, strategy, host: str = None, **kw):
+        """
+        :param server: IP address or host name of the streaming server.
+        :param manifestpath: Path of the manifest to open.
+        :param strategy: Bitrate switching strategy, the given function shall return one value of the bitrates, which
+        will be handed over as a list of integers in the first argument.
+        :param host: HTTP host header to be sent (may be needed, if server is specified by IP address).
+        :param kw: Any additional parameter to be handed over to its parent class (and eventually to the Thread class).
+        """
         assert isinstance(strategy, Callable), "Strategy must be callable: '%s'" % strategy
         super(ABRAnt, self).__init__(**kw)
 
-        self._videocurl = pycurl.Curl()
-        self._audiocurl = pycurl.Curl()
-        self._videocurl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
-        self._audiocurl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
-        # fragmentsched = sched.scheduler(time.time, time.sleep)
+        self._host = host
+
+        # use different HTTP connectins for audio and video fragments.
+        self._videocurl = None
+        self._audiocurl = None
 
         manifestcurl = pycurl.Curl()
 
         if host is not None:
             manifestcurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % host])
-            self._videocurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % host])
-            self._audiocurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % host])
 
         try:
             manifestcurl.setopt(pycurl.URL, "http://%s%s" % (server, manifestpath))
@@ -217,6 +236,16 @@ class ABRAnt(Ant):
 
         manifestcurl.close()
 
+    def before(self):
+        self._videocurl = pycurl.Curl()
+        self._audiocurl = pycurl.Curl()
+        self._videocurl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
+        self._audiocurl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
+
+        if self._host is not None:
+            self._videocurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % self._host])
+            self._audiocurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % self._host])
+
     def work(self, *args):
         curl = args[0]
         server = args[1]
@@ -225,6 +254,6 @@ class ABRAnt(Ant):
         curl.setopt(pycurl.URL, "http://%s%s" % (server, path))
         curl.perform()
 
-    def cleanup(self):
+    def after(self):
         self._videocurl.close()
         self._audiocurl.close()
