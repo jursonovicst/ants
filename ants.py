@@ -5,7 +5,11 @@ from ants import Colony, Nest, Queen
 import time
 import multiprocessing
 
+# required packages:
+# pycurl, lxml, numpy, chardet
+
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(prog='colony', description='Colony load tester')
     parser.add_argument('--listen', type=str, metavar='address', help='Listen')
     parser.add_argument('--connect', type=str, nargs='+', metavar=('address', 'name'),
