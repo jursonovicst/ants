@@ -60,7 +60,8 @@ class Colony(Thread):
         self._log("exited")
 
     def _send(self, o):
-        assert self._conns, "No connection to send on"
+        if not self._conns:
+            raise Exception("No connection to send on!")
         self._conns[self._connptr].send(o)
         self._connptr = (self._connptr + 1) % len(self._conns)
 

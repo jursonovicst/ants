@@ -132,21 +132,20 @@ class ABRAnt(Ant):
 
         mparser = MParser("http://%s%s" % (server, manifestpath))
 
-        for at, path, range in mparser.fragments(MParser.VIDEO, strategy=min, length=duration):
+        for at, path, range in mparser.fragments(MParser.VIDEO, strategy=min, duration=duration):
             print(at, path, range)
             self.schedulework(at,
-                          self._videocurl,
-                          server,
-                          path,
-                          range)
+                              self._videocurl,
+                              server,
+                              path,
+                              range)
 
-        for at, path, range in mparser.fragments(MParser.AUDIO, strategy=min, length=duration):
+        for at, path, range in mparser.fragments(MParser.AUDIO, strategy=min, duration=duration):
             self.schedulework(at,
-                          self._audiocurl,
-                          server,
-                          path,
-                          range)
-
+                              self._audiocurl,
+                              server,
+                              path,
+                              range)
 
         # manifestcurl = pycurl.Curl()
         #
@@ -251,13 +250,12 @@ class ABRAnt(Ant):
         # self._videocurl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
         # self._audiocurl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
 
-
     def work(self, *args):
         assert 3 <= len(args) <= 5
         curl = args[0]
         server = args[1]
         path = args[2]
-        rfrom , rto = args[3] if len(args) == 4 else (None, None)
+        rfrom, rto = args[3] if len(args) == 4 else (None, None)
 
         curl.setopt(pycurl.URL, "http://%s%s" % (server, path))
         if range:
