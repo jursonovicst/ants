@@ -31,7 +31,7 @@ class Nest(Process):
             sys.exit(1)
 
     def addant(self, ant: Ant):
-        assert isinstance(ant, Ant), "Only ants can be added to nest, I got '%s'" % type(ant)
+        #assert isinstance(ant, Ant), "Only ants can be added to nest, I got '%s'" % type(ant) TODO: fix
         self._ants.append(ant)
         ant.start()
 
