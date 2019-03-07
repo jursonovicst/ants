@@ -133,7 +133,6 @@ class ABRAnt(Ant):
         mparser = MParser("http://%s%s" % (server, manifestpath))
 
         for at, path, range in mparser.fragments(MParser.VIDEO, strategy=min, duration=duration):
-            print(at, path, range)
             self.schedulework(at,
                               self._videocurl,
                               server,
