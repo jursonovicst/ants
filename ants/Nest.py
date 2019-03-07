@@ -1,4 +1,4 @@
-from ants import Msg
+from ants import Msg, Ant
 from multiprocessing import Process
 from multiprocessing.connection import Client
 from threading import Event
@@ -30,12 +30,8 @@ class Nest(Process):
             print("Cannot connect to Colony: '%s'" % err)
             sys.exit(1)
 
-    @property
-    def ant(self):
-        return None
-
-    @ant.setter
-    def ant(self, ant):
+    def addant(self, ant: Ant):
+        assert isinstance(ant, Ant), "Only ants can be added to nest, I got '%s'" % type(ant)
         self._ants.append(ant)
         ant.start()
 

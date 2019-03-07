@@ -7,7 +7,7 @@ class TestABRAnt(TestCase):
         ant = ABRAnt(server="playready.directtaps.net",
                      manifestpath="/smoothstreaming/TTLSS720VC1/To_The_Limit_720.ism/Manifest",
                      strategy=min,
-                     duration= 30)
+                     duration=30)
 
         ant.start()
         ant.join()
