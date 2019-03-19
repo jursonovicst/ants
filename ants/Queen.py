@@ -1,11 +1,10 @@
 class Queen(object):
     """
-    Create a subclass of this to lay eggs. The method layeggs() will be called by the simulation.
+    Define a subclass of Queen and override its layeggs() method to lay eggs.
     """
 
     def layeggs(self):
         """
-        Overload this method to yield your eggs. Must be an iterator.
-        :return:
+        Override this method to yield Eggs. During initialization, it will be call as many times as it yields Eggs.
         """
         pass
