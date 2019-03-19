@@ -14,7 +14,7 @@ class Nest(Process):
     Use the --nextcount argument to change it.
     """
 
-    def __init__(self, address: str, port: int, name='default'):
+    def __init__(self, address: str, port: int, name='noname'):
         super(Nest, self).__init__(name=name)
         try:
             self._conn = Client(address=(address, port), family='AF_INET')
@@ -47,14 +47,20 @@ class Nest(Process):
                 o = self._conn.recv()
 
                 if o.__class__.__name__ == 'Egg':
-                    self._scheduler.enter(delay=o.at, priority=1, action=o.hatch, argument=(self,))
-                    self._log("egg with larv '%s' to hatch at %.2f" % (o.larv, o.at))
+                    self._scheduler.enter(delay=o.delay, priority=1, action=o.hatch, argument=(self, self._conn,))
+                    self._log("egg with larv '%s' to hatch at %.2f" % (o.larv, o.delay))
                 elif o.__class__.__name__ == 'Cmd':
                     if o.iskick():
                         self._scheduler.run()
                     elif o.isterminate():
                         self._stopevent.set()
-                        # TODO: terminate running ants as well.
+
+                        # terminate ants, and wait for them for a bit
+                        for ant in self._ants:
+                            ant.terminate()
+                        for ant in self._ants:
+                            ant.join(1)
+
                 else:
                     self._log("unknown message: '%s'" % o)
 
