@@ -1,6 +1,6 @@
-from ants import Egg, Cmd
+from ants import Egg, Cmd, Msg
 from threading import Thread, Event  # , Lock
-from multiprocessing.connection import Listener, wait
+from multiprocessing.connection import Listener, wait, Client
 
 
 class Colony(Thread):
@@ -10,51 +10,53 @@ class Colony(Thread):
 
         self._conns = []
         self._connptr = 0
-        #        self._connlock = Lock()
 
         self._stopevent = Event()
+        self._address = address
+        self._port = port
 
-        self._listenerthread = Thread(target=self._listen, args=(address, port,))
+        self._listenerthread = Thread(target=self._listen, args=(self._address, self._port))
         self._listenerthread.start()
 
         self.start()
 
-    def _listen(self, address, port):
+    def _listen(self, address: str, port: int):
         try:
             with Listener(address=(address, port)) as listener:
                 self._log("listening on %s" % (address if port is None else ("%s:%d" % (address, port))))
 
                 while not self._stopevent.isSet():
                     conn = listener.accept()
-                    self._log("connection accepted from %s:%d" % listener.last_accepted)
-                    #                    self._connlock.acquire()
                     self._conns.append(conn)
-        #                    self._connlock.release()
+
+                    if not self._stopevent.isSet():
+                        self._log("connection accepted from %s:%d" % listener.last_accepted)
 
         except KeyboardInterrupt:
-            print("SSS")
+            self._log("interrupted")
         except OSError as err:
             self._log(err)
 
         self._log("stopped listening")
 
     def run(self):
-        # self._log("waiting for messages")
+
         while not self._stopevent.isSet():
-            #            self._connlock.acquire()
+
             if self._conns:
                 for conn in wait(self._conns, timeout=0.1):
                     try:
                         msg = conn.recv()
-                        print(msg)
+                        if isinstance(msg, Msg):
+                            # log message from Nest
+                            print(msg)
+
                     except EOFError:
                         self._log("removes connection")
                         self._conns.remove(conn)
                         if not self._conns:
                             # no more connection
                             self._stopevent.set()
-
-        #            self._connlock.release()
 
         self._listenerthread.join(5)
         self._log("exited")
@@ -73,10 +75,17 @@ class Colony(Thread):
         self._sendtoall(Cmd.kick())
 
     def terminate(self):
+        # send terminate command to all Nests
         self._sendtoall(Cmd.terminate())
+
+        # set terminate event
+        self._stopevent.set()
+
+        # Listener is blocked in the accpet() call, open a dummy connection to break blocking
+        Client(address=(self._address, self._port), family='AF_INET')
 
     def addegg(self, egg: Egg):
         self._send(egg)
 
-    def _log(self, msg):
-        print("%s: %s" % (self.__class__.__name__, msg))
+    def _log(self, logstring):
+        print("%s: %s" % (self.__class__.__name__, logstring))
