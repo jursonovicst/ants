@@ -61,7 +61,7 @@ class Colony(Thread):
         self._listenerthread.join(5)
         self._log("exited")
 
-    def _send(self, o):
+    def _sendroundrobbin(self, o):
         if not self._conns:
             raise Exception("No connection to send on!")
         self._conns[self._connptr].send(o)
@@ -85,7 +85,7 @@ class Colony(Thread):
         Client(address=(self._address, self._port), family='AF_INET')
 
     def addegg(self, egg: Egg):
-        self._send(egg)
+        self._sendroundrobbin(egg)
 
     def _log(self, logstring):
         print("%s: %s" % (self.__class__.__name__, logstring))
