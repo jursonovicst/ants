@@ -11,14 +11,13 @@ import resource
 class Nest(Process):
     """
     Represents a group of ants. It is realised by a Process class. A host run one nest per CPU core by default.
-    Use the --nextcount switch to change it.
+    Use the --nextcount argument to change it.
     """
 
-    def __init__(self, address, port=None, name='default'):
+    def __init__(self, address: str, port: int, name='default'):
         super(Nest, self).__init__(name=name)
         try:
-            self._conn = Client(address=address if port is None else (address, port),
-                                family='AF_UNIX' if port is None else 'AF_INET')
+            self._conn = Client(address=(address, port), family='AF_INET')
 
             self._stopevent = Event()
             self._ants = []
@@ -29,9 +28,11 @@ class Nest(Process):
         except ConnectionRefusedError as err:
             print("Cannot connect to Colony: '%s'" % err)
             sys.exit(1)
+        except Exception as e:
+            self._log(e)
 
     def addant(self, ant: Ant):
-        #assert isinstance(ant, Ant), "Only ants can be added to nest, I got '%s'" % type(ant) TODO: fix
+        # assert isinstance(ant, Ant), "Only ants can be added to nest, I got '%s'" % type(ant) TODO: fix
         self._ants.append(ant)
         ant.start()
 
