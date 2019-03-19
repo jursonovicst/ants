@@ -1,6 +1,7 @@
 from threading import Thread
 import sched
 import time
+from ants import Msg
 from io import BytesIO
 import pycurl
 from lxml import etree
@@ -26,8 +27,7 @@ class Ant(Thread):
 
         # Ant's scheduler to start tasks.
         self._scheduler = sched.scheduler(time.time, time.sleep)
-
-        print("%s '%s' born" % (self.__class__.__name__, self.name))
+        self._conn = None
 
     def schedulework(self, at, *args):
         """
@@ -42,6 +42,8 @@ class Ant(Thread):
         """
         Do not overload this function, overload work() instead.
         """
+        self._log("born")
+
         # process tasks, this will block till end of simulation or till interrupt.
         self._scheduler.run()
 
@@ -49,9 +51,9 @@ class Ant(Thread):
         try:
             self.cleanup()
         except BaseException as e:
-            print("%s '%s' cleanup error: '%s'" % (self.__class__.__name__, self.name, str(e)))
+            self._log("cleanup error: '%s'" % str(e))
 
-        print("%s '%s' die" % (self.__class__.__name__, self.name))
+        self._log("die")
 
     def work(self, *args):
         """
@@ -65,6 +67,17 @@ class Ant(Thread):
         Called after finished processing the tasks to clean up stuff. You may overload this method.
         """
         pass
+
+    @property
+    def conn(self):
+        return self._conn
+
+    @conn.setter
+    def conn(self, conn):
+        self._conn = conn
+
+    def _log(self, msg):
+        self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, msg)))
 
 
 class HTTPAnt(Ant):
