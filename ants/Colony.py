@@ -1,5 +1,5 @@
 from ants import Egg, Cmd, Msg
-from threading import Thread, Event  # , Lock
+from threading import Thread, Event
 from multiprocessing.connection import Listener, wait, Client
 
 
