@@ -33,6 +33,10 @@ class Nest(Process):
 
     def addant(self, ant: Ant):
         # assert isinstance(ant, Ant), "Only ants can be added to nest, I got '%s'" % type(ant) TODO: fix
+
+        # set conn for logging
+        ant.conn = self._conn
+
         self._ants.append(ant)
         ant.start()
 
