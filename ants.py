@@ -2,7 +2,6 @@
 
 import argparse
 from ants import Colony, Nest, Queen
-import time
 import multiprocessing
 
 if __name__ == "__main__":
@@ -39,41 +38,37 @@ if __name__ == "__main__":
                 mynests.append(Nest(address=args.connect[0], port=args.port,
                                     name="%s_%d" % (args.connect[1] if len(args.connect) > 1 else 'default', i)))
 
-            # wait till all ends
+            # wait till all ends, this will block
             for nest in mynests:
                 if nest.is_alive():
                     nest.join()
+
+            # done
             exit(0)
 
         elif mode == MMASTER:
-            if 'profile' not in args:
-                raise AttributeError("Error, profile file most be defined for master mode!")
-
-            print("master mode with ")
+            print("master mode")
             mycolony = Colony(address=args.listen, port=args.port)
-            time.sleep(1)
 
-            # wait for nests to connect
+            # wait for user to connect nests
             input("Connect slaves, then press enter to execute...")
 
             # continue to load
 
         else:
-            if 'profile' not in args:
-                raise AttributeError("Error, profile file most be defined for standalone mode!")
-
             print('standalone mode')
             mycolony = Colony(address='127.0.0.1', port=args.port)
-            time.sleep(1)
 
             for i in range(0, (multiprocessing.cpu_count() - 2) if args.nestcount is 0 else args.nestcount):
                 nest = Nest(address='127.0.0.1', port=args.port, name="%s_%d" % ('default', i))
                 mynests.append(nest)
-            time.sleep(1)
 
             # continue to load
 
-        # load simulation Queen
+        # load Queen
+        if 'profile' not in args:
+            raise AttributeError("Master and standalone mode needs the profile argument!")
+
         exec(args.profile.read())
         if len(Queen.__subclasses__()) != 1:
             raise SyntaxError("Profile file '%s' must contain exactly one subclass of Queen, found: %s" % (
@@ -84,22 +79,28 @@ if __name__ == "__main__":
         for egg in myqueen.layeggs():
             mycolony.addegg(egg)
 
-        # execute simulation
+        # execute
         mycolony.execute()
 
-        # wait till ends
+        # wait till ends, this will block
         mycolony.join()
 
     except Exception as e:
         print(e)
-        mycolony.terminate()
-    except KeyboardInterrupt:
-        print("interrupt")
-        mycolony.terminate()
 
-    finally:
-        if mode != MMASTER:
-            # wait for nests to terminate
+        if mycolony:
+            mycolony.terminate()
+        else:
+            # terminate nests if any
             for nest in mynests:
                 if nest.is_alive():
-                    nest.join()
+                    nest.terminate()
+    except KeyboardInterrupt:
+        # terminate Colony if any, Colony will terminate its Nests
+        if mycolony:
+            mycolony.terminate()
+        else:
+            # terminate nests if any
+            for nest in mynests:
+                if nest.is_alive():
+                    nest.terminate()
