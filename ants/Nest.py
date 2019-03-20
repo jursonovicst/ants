@@ -57,51 +57,58 @@ class Nest(Process):
         """
         self._log("started, max open files: '%d %d'" % resource.getrlimit(resource.RLIMIT_NOFILE))
 
-        # keep checking commands till stopevent
-        while not self._stopevent.isSet():
+        try:
+            # keep checking commands till stopevent
+            while not self._stopevent.isSet():
 
-            # poll till the next event, or for 0.1 seconds, if not yet executing.
-            polltime = self._scheduler.run(blocking=False) if self._startevent.isSet() else 0.1
+                # poll till the next event, or for 0.1 seconds, if not yet executing.
+                polltime = self._scheduler.run(blocking=False) if self._startevent.isSet() else 0.1
 
-            # remember the start of pooling. If waiting during polling is interrupted, the remaining time must be
-            # polled again.
-            pollstart = time.time()
+                # remember the start of pooling. If waiting during polling is interrupted, the remaining time must be
+                # polled again.
+                pollstart = time.time()
 
-            # terminate, if there are no more eggs to hatch (Scheduler.run() returns None)
-            if polltime is None:
-                self._stopevent.set()
+                # terminate, if there are no more eggs to hatch (Scheduler.run() returns None)
+                if polltime is None:
+                    self._stopevent.set()
 
-            # do polling, repeate with the remaining wait time, if interrupted by a message.
-            while not self._stopevent.isSet() and self._conn.poll(timeout=max(0, polltime)):
-                o = self._conn.recv()
+                # do polling, repeate with the remaining wait time, if interrupted by a message.
+                while not self._stopevent.isSet() and self._conn.poll(timeout=max(0, polltime)):
+                    o = self._conn.recv()
 
-                # if isinstance(o, Egg): #TODO figure out, why this is not working
-                if o.__class__.__name__ == 'Egg':
-                    self._scheduler.enter(delay=o.delay, priority=1, action=o.hatch, argument=(self, self._conn,))
-                    self._log("egg with larv '%s' to hatch at %.2f" % (o.larv, o.delay))
-                elif isinstance(o, Cmd):
-                    if o.isexecute():
-                        self._startevent.set()
-                    elif o.isterminate():
-                        self._stopevent.set()
+                    # if isinstance(o, Egg): #TODO figure out, why this is not working
+                    if o.__class__.__name__ == 'Egg':
+                        self._scheduler.enter(delay=o.delay, priority=1, action=o.hatch, argument=(self, self._conn,))
+                        self._log("egg with larv '%s' to hatch at %.2f" % (o.larv, o.delay))
+                    elif isinstance(o, Cmd):
+                        if o.isexecute():
+                            self._startevent.set()
+                        elif o.isterminate():
+                            self._terminate()
 
-                        # termiante running ants
-                        for ant in self._ants:
-                            if ant.is_alive():
-                                ant.terminate()
+                    # calculate remaining wait time
+                    polltime -= time.time() - pollstart
 
-                # calculate remaining wait time
-                polltime -= time.time() - pollstart
+            # wait for still running ants to finish
+            for ant in self._ants:
+                if ant.is_alive():
+                    ant.join()
+                    self._ants.remove(ant)
 
-        # wait for still running ants to finish
-        for ant in self._ants:
-            if ant.is_alive():
-                ant.join()
-                self._ants.remove(ant)
+        except KeyboardInterrupt:
+            self._log("interrupted.")
 
         self._conn.send(Cmd.terminated())
         self._conn.close()
         sys.exit(0)
+
+    def _terminate(self):
+        self._stopevent.set()
+
+        # termiante all running ants
+        for ant in self._ants:
+            if ant.is_alive():
+                ant.terminate()
 
     def _log(self, logstring):
         """
