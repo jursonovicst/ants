@@ -1,15 +1,10 @@
-from threading import Thread
+from threading import Thread, Event
 import sched
 import time
 from ants import Msg
-from io import BytesIO
 import pycurl
-from lxml import etree
-import numpy as np
-import os
 from typing import Callable
-import chardet
-import random
+import random  # this is needed, because the strategy function may be a random function.
 from manifestparser import MParser
 
 
@@ -27,21 +22,26 @@ class Ant(Thread):
 
         # Ant's scheduler to start tasks.
         self._scheduler = sched.scheduler(time.time, time.sleep)
+
+        # connection for remote logging
         self._conn = None
 
-    def schedulework(self, at, *args):
+        self._stopevent = Event()
+
+    def schedulework(self, delay, *args):
         """
         Schedule work for the ant.
-        :param at: Time at work should be done
+        :param delay: Time at work should be done
         :param args: Arguments passed to the work() method.
-        :return:
         """
-        self._scheduler.enter(delay=at, priority=100, action=self.work, argument=args)
+        self._scheduler.enter(delay=delay, priority=100, action=self.work, argument=args)
 
     def run(self):
         """
         Do not overload this function, overload work() instead.
         """
+
+        assert self._conn is not None, "I need a valid connection to send log messages..."
         self._log("born")
 
         # process tasks, this will block till end of simulation or till interrupt.
@@ -53,7 +53,7 @@ class Ant(Thread):
         except BaseException as e:
             self._log("cleanup error: '%s'" % str(e))
 
-        self._log("die")
+        self._log("died")
 
     def work(self, *args):
         """
@@ -68,6 +68,9 @@ class Ant(Thread):
         """
         pass
 
+    def terminate(self):
+        self._stopevent.set()
+
     @property
     def conn(self):
         return self._conn
@@ -80,6 +83,22 @@ class Ant(Thread):
         self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, msg)))
 
 
+class SleepyAnt(Ant):
+    """
+    An example Ant implementation for sleeping for a bit.
+    """
+
+    def __init__(self, sleepperiod: int, **kw):
+        super(SleepyAnt, self).__init__(**kw)
+        if sleepperiod < 0:
+            raise ValueError("sleepperiod must be non negative: %d" % sleepperiod)
+
+        self.schedulework(sleepperiod)
+
+    def work(self, *args):
+        self._log("waken up")
+
+
 class HTTPAnt(Ant):
     """
     An example Ant implementation for accessing a list of HTTP URLs.
@@ -87,7 +106,8 @@ class HTTPAnt(Ant):
 
     def __init__(self, server: str, paths, delays, host: str = None, **kw):
         super(HTTPAnt, self).__init__(**kw)
-        assert len(paths) == len(delays), "length mismatch: %d vs. %d" % (len(paths), len(delays))
+        if len(paths) != len(delays):
+            raise ValueError("length mismatch: %d vs. %d" % (len(paths), len(delays)))
 
         self._server = server
 
@@ -102,13 +122,12 @@ class HTTPAnt(Ant):
 
     def work(self, *args):
         path = args[0]
+        url = "http://%s%s" % (self._server, path)
 
-        self._curl.setopt(pycurl.URL, "http://%s%s" % (self._server, path))
+        self._curl.setopt(pycurl.URL, url)
         self._curl.perform()
 
-        # TODO: reporting
-        # if int(self._curl.getinfo(pycurl.HTTP_CODE)) != 200:
-        #    raise Exception("cannot load %s, return code: %d" % ("http://%s%s" % (self._server, path), self._curl.getinfo(pycurl.HTTP_CODE)))
+        self._log("'%s': %s" % (url, self._curl.getinfo(pycurl.HTTP_CODE)))
 
     def cleanup(self):
         self._curl.close()
