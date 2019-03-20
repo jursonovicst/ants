@@ -15,12 +15,19 @@ class Colony(Thread):
         self._address = address
         self._port = port
 
+        # create and start a thread to accept connections from local or remote nests
         self._listenerthread = Thread(target=self._listen, args=(self._address, self._port))
         self._listenerthread.start()
 
+        # start own thread
         self.start()
 
     def _listen(self, address: str, port: int):
+        """
+        Listener.accept() blocks, therefore an own thread is needed to encapsulate it.
+        :param address: IP address to listen on
+        :param port: port
+        """
         try:
             with Listener(address=(address, port)) as listener:
                 self._log("listening on %s" % (address if port is None else ("%s:%d" % (address, port))))
@@ -33,59 +40,84 @@ class Colony(Thread):
                         self._log("connection accepted from %s:%d" % listener.last_accepted)
 
         except KeyboardInterrupt:
-            self._log("interrupted")
+            pass
         except OSError as err:
             self._log(err)
 
         self._log("stopped listening")
 
     def run(self):
+        """
+        Manage Communication with Nests, do logging.
+        """
 
         while not self._stopevent.isSet():
+            for conn in wait(self._conns, timeout=0.1):
+                try:
+                    o = conn.recv()
+                    if isinstance(o, Msg):
+                        # log message from Nest
+                        print(o)
+                    elif isinstance(o, Cmd):
+                        if o.isterminated():
+                            self._log("Nest %s terminated" % "_")
+                            self._conns.remove(conn)
+                            conn.close()
 
-            if self._conns:
-                for conn in wait(self._conns, timeout=0.1):
-                    try:
-                        msg = conn.recv()
-                        if isinstance(msg, Msg):
-                            # log message from Nest
-                            print(msg)
+                            # terminate, if there are no more Nests
+                            if not self._conns:
+                                self._log("No more Nest in connection pool, terminating")
+                                self.terminate()
 
-                    except EOFError:
-                        self._log("removes connection")
-                        self._conns.remove(conn)
-                        if not self._conns:
-                            # no more connection
-                            self._stopevent.set()
+                except EOFError:
+                    self._log("connection to Nest %s lost" % "_")
+                    self._conns.remove(conn)
 
-        self._listenerthread.join(5)
+        # Listener is blocked in the accpet() call, open a dummy connection to break blocking and let it finish
+        Client(address=(self._address, self._port), family='AF_INET')
+        self._listenerthread.join()
+
         self._log("exited")
 
     def _sendroundrobbin(self, o):
+        """
+        Send object to a Nest chosen on a round robbin fashion.
+        """
         if not self._conns:
             raise Exception("No connection to send on!")
         self._conns[self._connptr].send(o)
         self._connptr = (self._connptr + 1) % len(self._conns)
 
     def _sendtoall(self, o):
+        """
+        Send object to all Nests.
+        """
         for conn in self._conns:
             conn.send(o)
 
+    def _log(self, logstring):
+        """
+        Print loggstring.
+        """
+        print("%s: %s" % (self.__class__.__name__, logstring))
+
     def execute(self):
-        self._sendtoall(Cmd.kick())
+        """
+        Trigger execution, Eggs are going to hatch now.
+        """
+        self._sendtoall(Cmd.execute())
 
     def terminate(self):
-        # send terminate command to all Nests
+        """
+        Terminate execution.
+        """
         self._sendtoall(Cmd.terminate())
 
-        # set terminate event
+        # set own terminate event as well
         self._stopevent.set()
 
-        # Listener is blocked in the accpet() call, open a dummy connection to break blocking
-        Client(address=(self._address, self._port), family='AF_INET')
-
     def addegg(self, egg: Egg):
+        """
+        Distribute Egg among Nests on a round robbin fashion.
+        """
         self._sendroundrobbin(egg)
-
-    def _log(self, logstring):
-        print("%s: %s" % (self.__class__.__name__, logstring))
