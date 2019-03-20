@@ -10,6 +10,7 @@ class Msg(object):
 class Cmd(object):
     _EXECUTE = 0
     _TERMINATE = 1
+    _TERMINATED = 2
 
     def __init__(self, command):
         self._command = command
@@ -27,3 +28,10 @@ class Cmd(object):
 
     def isterminate(self):
         return self._command == self._TERMINATE
+
+    @classmethod
+    def terminated(cls):
+        return cls(cls._TERMINATED)
+
+    def isterminated(self):
+        return self._command == self._TERMINATED
