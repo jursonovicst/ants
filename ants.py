@@ -25,6 +25,7 @@ if __name__ == "__main__":
     MSTANDALONE = 0
     MMASTER = 1
     MSLAVE = 2
+
     mode = MSTANDALONE
     if args.connect is not None:
         mode = MSLAVE
@@ -53,7 +54,7 @@ if __name__ == "__main__":
             time.sleep(1)
 
             # wait for nests to connect
-            input("Connect slaves, then press enter to continue...")
+            input("Connect slaves, then press enter to execute...")
 
             # continue to load
 
