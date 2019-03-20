@@ -16,21 +16,26 @@ class Colony(Thread):
         self._port = port
 
         # create and start a thread to accept connections from local or remote nests
-        self._listenerthread = Thread(target=self._listen, args=(self._address, self._port))
+        ready = Event()
+        self._listenerthread = Thread(target=self._listen, args=(ready,))
         self._listenerthread.start()
 
-        # start own thread
+        # start own thread if ready for accepting connections
+        if not ready.wait(1):
+            self._log("Listening thread not started.")
+            raise Exception("Exiting.")
+
         self.start()
 
-    def _listen(self, address: str, port: int):
+    def _listen(self, *args):
         """
         Listener.accept() blocks, therefore an own thread is needed to encapsulate it.
-        :param address: IP address to listen on
-        :param port: port
         """
         try:
-            with Listener(address=(address, port)) as listener:
-                self._log("listening on %s" % (address if port is None else ("%s:%d" % (address, port))))
+            ready = args[0]
+            with Listener(address=(self._address, self._port)) as listener:
+                self._log("listening on %s:%d" % (self._address, self._port))
+                ready.set()
 
                 while not self._stopevent.isSet():
                     conn = listener.accept()
@@ -42,6 +47,7 @@ class Colony(Thread):
         except KeyboardInterrupt:
             pass
         except OSError as err:
+            # something went wrong, terminate
             self._log(err)
 
         self._log("stopped listening")
