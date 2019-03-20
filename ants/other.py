@@ -16,10 +16,10 @@ class Cmd(object):
         self._command = command
 
     @classmethod
-    def kick(cls):
+    def execute(cls):
         return cls(cls._EXECUTE)
 
-    def iskick(self):
+    def isexecute(self):
         return self._command == self._EXECUTE
 
     @classmethod
