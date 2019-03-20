@@ -1,38 +1,52 @@
 from ants import Nest
 from typing import Type
+from ants import Msg
+from multiprocessing.connection import Connection
 
 
 class Egg(object):
-    def __init__(self, at: float, larv: Type, **kwargs):
-        assert at >= 0, "Egg cannot hatch in the past: %f" % at
-        # TODO: fix this
-        # assert larv.__name__ == Ant.__class__.__name__,
-        # "Only Ant can hatch from an egg: %s vs. %s" % (larv.__name__, Ant.__name__)
+    def __init__(self, delay: float, larv: Type, **kwargs):
+        """
+        An Egg is used to encapsulate an Ant and schedule its birth. Eggs lay in a Nest, and after 'delay' seconds,
+        they hatch, and an Ant is born.
 
-        self._at = at
+        :param delay: Duration, after which the egg will hatch, and an Ant will born.
+        :param larv: The type (and not an instance) of the Ant to be born.
+        :param kwargs: Custom arguments passed to the Ant's constructor at birth.
+        """
+        assert delay >= 0, "An Egg cannot hatch in the past: %f" % delay
+
+        self._delay = delay
         self._larv = larv
         self._kwargs = kwargs
 
     @property
-    def at(self):
-        return self._at
+    def delay(self):
+        return self._delay
 
     @property
     def larv(self):
         return self._larv
 
-    def hatch(self, nest: Nest):
+    def hatch(self, nest: Nest, conn: Connection):
         """
+        If an Egg reaches its hatch time, an Ant (with type of self._larv) will born. This method is called by the
+        Nest's Scheduler, so it needs to catch all errors and implement logging by itself.
 
-        :param nest: the nest instance, in which the egg hatched.
-        :return:
+        :param nest: The nest instance, in which the egg hatched.
+        :param conn: Connection used for remote logging.
         """
-        # create ant and add to its nest, nest will start it...
+        # create Ant and add to its Nest, Nest will start it...
         try:
             ant = self._larv(**self._kwargs)
             nest.addant(ant)
         except Exception as e:
-            print(e)
+            self._log(e, conn)
 
-    def __str__(self):
-        return "%s at %.2f with '%s' larv" % (self.__class__.__name__, self._at, self._larv.__name__)
+    def _log(self, logstring, conn: Connection):
+        """
+        Use remote logging on Colony.
+        """
+        conn.send(Msg("%s '%s': %s" % (
+            self.__class__.__name__, self._kwargs['name'] if 'name' in self._kwargs else 'noname',
+            logstring)))
