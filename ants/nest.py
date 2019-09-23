@@ -85,6 +85,8 @@ class Nest(Process):
                             self._startevent.set()
                         elif o.isterminate():
                             self._terminate()
+                        elif o.isping():
+                            self._conn.send(Cmd.pong())
 
                     # calculate remaining wait time
                     polltime -= time.time() - pollstart
@@ -114,4 +116,5 @@ class Nest(Process):
         """
         Use remote logging on Colony.
         """
+        assert self._conn is not None, "I need a valid connection to send log messages on..."
         self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, logstring)))
