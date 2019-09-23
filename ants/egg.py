@@ -14,7 +14,8 @@ class Egg(object):
         :param larv: The type (and not an instance) of the Ant to be born.
         :param kwargs: Custom arguments passed to the Ant's constructor at birth.
         """
-        assert delay >= 0, "An Egg cannot hatch in the past: %f" % delay
+        if delay < 0:
+            raise SyntaxError("An Egg cannot hatch in the past: %f" % delay)
 
         self._delay = delay
         self._larv = larv
