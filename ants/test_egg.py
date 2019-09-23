@@ -25,7 +25,7 @@ class TestEgg(TestCase):
         self.assertEqual(myegg.larv, Ant)
 
     def test_create_past(self):
-        self.assertRaises(SyntaxError, Egg, delay=-1 * self._delay, larv=Ant, name='testant')
+        self.assertRaises(ValueError, Egg, delay=-1 * self._delay, larv=Ant, name='testant')
 
     def test_hatch(self):
         # create egg with an Ant ant
