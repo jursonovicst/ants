@@ -48,6 +48,7 @@ class Egg(object):
         """
         Use remote logging on Colony.
         """
+        assert conn is not None, "I need a valid connection to send log messages on..."
         conn.send(Msg("%s '%s': %s" % (
             self.__class__.__name__, self._kwargs['name'] if 'name' in self._kwargs else 'noname',
             logstring)))
