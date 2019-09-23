@@ -39,14 +39,14 @@ class TestEgg(TestCase):
             def addant(self, ant):
                 self.ant = ant
 
-        testnest = Nest()
+        dummynest = Nest()
 
         # hatch egg
-        myegg.hatch(testnest, self._remote)
+        myegg.hatch(dummynest, self._remote)
 
         # check hatched ant
-        self.assertIsInstance(testnest.ant, Ant)
-        self.assertEqual(testnest.ant.name, 'testant')
+        self.assertIsInstance(dummynest.ant, Ant)
+        self.assertEqual(dummynest.ant.name, 'testant')
 
         # there should not be any message
         self.assertFalse(self._local.poll(), "There should not be any message, got at least one")
