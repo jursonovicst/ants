@@ -36,11 +36,11 @@ class TestAnt(TestCase):
         # there should be two messages: born and died
         self.assertTrue(self._local.poll(1), 'Ant has not sent a first (born) message within 1 second.')
         msg = self._local.recv()
-        self.assertIsInstance(msg, Msg, "Ant should have sent Msg message, received: '%s'" % type(msg))
+        self.assertRegex(str(msg), r"emptyant.*born", "%s" % msg)
 
         self.assertTrue(self._local.poll(1), 'Ant has not sent a second (died) message within 1 second.')
         msg = self._local.recv()
-        self.assertIsInstance(msg, Msg, "Ant should have sent Msg message, received: '%s'" % type(msg))
+        self.assertRegex(str(msg), r"emptyant.*died", "%s" % msg)
 
         # there should not be any more messages
         self.assertFalse(self._local.poll(), "Ant sent more than 2 messages: 2nd: '%s'." % msg)
