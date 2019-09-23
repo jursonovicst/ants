@@ -11,6 +11,8 @@ class Cmd(object):
     _EXECUTE = 0
     _TERMINATE = 1
     _TERMINATED = 2
+    _PING = 3
+    _PONG = 4
 
     def __init__(self, command):
         self._command = command
@@ -35,3 +37,17 @@ class Cmd(object):
 
     def isterminated(self):
         return self._command == self._TERMINATED
+
+    @classmethod
+    def ping(cls):
+        return cls(cls._PING)
+
+    def isping(self):
+        return self._command == self._PING
+
+    @classmethod
+    def pong(cls):
+        return cls(cls._PONG)
+
+    def ispong(self):
+        return self._command == self._PONG
