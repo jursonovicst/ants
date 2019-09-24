@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from ants import Colony, Nest, Queen, LOGLEVELS
+from ants import Colony, Nest, Queen
 import multiprocessing
 
 if __name__ == "__main__":
@@ -13,9 +13,11 @@ if __name__ == "__main__":
     parser.add_argument('--port', type=int, help='Port to use for connection (default: %(default)s)', default=7777)
     parser.add_argument('--nestcount', type=int, help='Number of nests to create per host (default: number of cores -2)'
                         , default=0)
+    parser.add_argument('--loglevel', type=str, choices=Nest.LOGLEVELS.keys(),
+                        default=list(Nest.LOGLEVELS.keys())[list(Nest.LOGLEVELS.values()).index(Nest.INFO)],
+                        help='Log verbosity.')
     parser.add_argument('profile', type=argparse.FileType('r'), nargs='?',
                         help="Python file containing a subclass of the Queen class to describe the load profile.")
-    parser.add_argument('loglevel', choices=LOGLEVELS.keys(), default='warning')
 
     args = parser.parse_args()
 
@@ -36,7 +38,7 @@ if __name__ == "__main__":
         if mode == MSLAVE:
             print("Running mode: slave")
             for i in range(0, (multiprocessing.cpu_count() - 2) if args.nestcount is 0 else args.nestcount):
-                mynests.append(Nest(address=args.connect[0], port=args.port, loglevel=LOGLEVELS[args.loglevel],
+                mynests.append(Nest(address=args.connect[0], port=args.port, loglevel=Nest.LOGLEVELS[args.loglevel],
                                     name="%s_%d" % (args.connect[1] if len(args.connect) > 1 else 'default', i)))
 
             # wait till all ends, this will block
@@ -61,7 +63,7 @@ if __name__ == "__main__":
             mycolony = Colony(address='127.0.0.1', port=args.port)
 
             for i in range(0, (multiprocessing.cpu_count() - 2) if args.nestcount is 0 else args.nestcount):
-                nest = Nest(address='127.0.0.1', port=args.port, loglevel=LOGLEVELS[args.loglevel],
+                nest = Nest(address='127.0.0.1', port=args.port, loglevel=Nest.LOGLEVELS[args.loglevel],
                             name="%s_%d" % ('default', i))
                 mynests.append(nest)
 
