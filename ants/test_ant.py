@@ -1,5 +1,5 @@
 from unittest import TestCase
-from ants import Ant, Msg
+from ants import Ant
 from multiprocessing.connection import Pipe
 import time
 import random
