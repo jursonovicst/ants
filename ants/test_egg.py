@@ -39,6 +39,10 @@ class TestEgg(TestCase):
             def addant(self, ant):
                 self.ant = ant
 
+            @property
+            def loglevel(self):
+                return Ant.DEBUG
+
         dummynest = Nest()
 
         # hatch egg
