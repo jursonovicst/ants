@@ -18,11 +18,12 @@ class Ant(Thread):
         super(Ant, self).__init__(**kw)
 
         # Ant's scheduler to start tasks.
-        self._scheduler = sched.scheduler(time.time, time.sleep)
+        self._scheduler = sched.scheduler(time.time)
 
         # connection for remote logging
         self._conn = None
 
+        # exit event
         self._stopevent = Event()
 
     def schedulework(self, delay, *args):
@@ -39,10 +40,18 @@ class Ant(Thread):
         """
         self._log("born")
 
-        # process tasks, this will block till the end of simulation or interrupt.
-        self._scheduler.run()
+        # process tasks, do not use blocking to let ant be terminated.
+        while not self._scheduler.empty() and not self._stopevent.isSet():
+            next_ev = self._scheduler.run(blocking=False)
 
-        # clean up stuff, if any
+            while next_ev is not None and next_ev > 0 and not self._stopevent.isSet():
+                if next_ev > 0.05:
+                    time.sleep(0.05)
+                else:
+                    time.sleep(next_ev)
+                next_ev -= 0.05
+
+        # all events were processed, clean up stuff, if any
         try:
             self.cleanup()
         except BaseException as e:
@@ -64,6 +73,7 @@ class Ant(Thread):
         pass
 
     def terminate(self):
+        # clear stop event
         self._stopevent.set()
 
     @property
