@@ -10,14 +10,13 @@ import resource
 LOGLEVELS = {'debug': 0, 'info': 1, 'warning': 2, 'error': 3}
 
 
-
 class Nest(Process):
     """
     Represents a group of ants. It is realised by a Process class. A host run one nest per CPU core by default.
     Use the --nextcount argument to change it.
     """
 
-    def __init__(self, address: str, port: int, loglevel: int, name=None):
+    def __init__(self, address: str, port: int, loglevel: int = LOGLEVELS['info'], name=None):
         super(Nest, self).__init__(name=name)
         try:
             # open connection towards the colony
