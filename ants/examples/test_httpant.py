@@ -36,7 +36,7 @@ class TestHTTPAnt(TestCase):
         paths = ['/test01.html', '/test02.html']
         delays = [1, 2]
 
-        testant = HTTPAnt("127.0.0.1:%d" % self._port, paths, delays, name='testant')
+        testant = HTTPAnt("127.0.0.1:%d" % self._port, paths, delays, name='testant', loglevel=HTTPAnt.DEBUG)
         testant.conn = self._remote
 
         # schedule httpd shutdown
