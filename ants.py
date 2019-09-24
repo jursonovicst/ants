@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     try:
         if mode == MSLAVE:
-            print("slave mode")
+            print("Running mode: slave")
             for i in range(0, (multiprocessing.cpu_count() - 2) if args.nestcount is 0 else args.nestcount):
                 mynests.append(Nest(address=args.connect[0], port=args.port,
                                     name="%s_%d" % (args.connect[1] if len(args.connect) > 1 else 'default', i)))
@@ -47,7 +47,7 @@ if __name__ == "__main__":
             exit(0)
 
         elif mode == MMASTER:
-            print("master mode")
+            print("Running mode: master")
             mycolony = Colony(address=args.listen, port=args.port)
 
             # wait for user to connect nests
@@ -56,7 +56,7 @@ if __name__ == "__main__":
             # continue to load
 
         else:
-            print('standalone mode')
+            print('Running mode: standalone')
             mycolony = Colony(address='127.0.0.1', port=args.port)
 
             for i in range(0, (multiprocessing.cpu_count() - 2) if args.nestcount is 0 else args.nestcount):
