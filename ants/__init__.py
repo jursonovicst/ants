@@ -1,6 +1,8 @@
 from .other import Msg, Cmd
-from .Queen import Queen
-from .Colony import Colony
-from .Nest import Nest
-from .Egg import Egg
-from .Ant import *
+from .ant import Ant
+from .nest import Nest
+from .egg import Egg
+from .colony import Colony
+from .queen import Queen
+
+from ants.examples import *
