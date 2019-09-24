@@ -4,15 +4,19 @@ import time
 from ants import Msg
 import random  # this is needed, because the strategy function may be a random function.
 
-LOGLEVELS = {'debug': 0, 'info': 1, 'warning': 2, 'error': 3}
-
 
 class Ant(Thread):
     """
     An ant template, use it to create your own ant.
     """
 
-    def __init__(self, loglevel: int = LOGLEVELS['info'], **kw):
+    DEBUG = 10
+    INFO = 20
+    WARNING = 30
+    ERROR = 40
+    LOGLEVELS = {'debug': DEBUG, 'info': INFO, 'warning': WARNING, 'error': ERROR}
+
+    def __init__(self, loglevel: int = INFO, **kw):
         """
         An ant does regular work. You may overload this method to initialize stuff for your Ant.
         :param kw: keyword arguments passed to the Thread class
@@ -90,7 +94,7 @@ class Ant(Thread):
     def conn(self, conn):
         self._conn = conn
 
-    def _log(self, text, level=LOGLEVELS['info']):
+    def _log(self, text, level=INFO):
         """
         Use remote logging on Colony.
         :param text: message to log
@@ -101,10 +105,10 @@ class Ant(Thread):
             self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, text)))
 
     def _logdebug(self, text):
-        self._log(text, LOGLEVELS['debug'])
+        self._log(text, Ant.DEBUG)
 
     def _logwarning(self, text):
-        self._log(text, LOGLEVELS['warning'])
+        self._log(text, Ant.WARNING)
 
     def _logerror(self, text):
-        self._log(text, LOGLEVELS['error'])
+        self._log(text, Ant.ERROR)
