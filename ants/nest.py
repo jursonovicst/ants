@@ -41,7 +41,7 @@ class Nest(Process):
 
     def addant(self, ant: Ant):
         """
-        Keep track of hatched Ants.
+        Do not use this function, the Egg will call it, if hatches. Keep track of hatched Ants.
         """
         # assert issubclass(ant, type(Ant)), "Only ants can be added to nest, I got '%s'" % type(ant) #TODO: fix this
 
@@ -62,7 +62,7 @@ class Nest(Process):
             while not self._stopevent.isSet():
 
                 # poll till the next event, or for 0.1 seconds, if not yet executing.
-                polltime = self._scheduler.run(blocking=False) if self._startevent.isSet() else 0.1
+                polltime = self._scheduler.run(blocking=False) if self._startevent.isSet() else 0.05
 
                 # remember the start of pooling. If waiting during polling is interrupted, the remaining time must be
                 # polled again.
@@ -105,16 +105,17 @@ class Nest(Process):
         sys.exit(0)
 
     def _terminate(self):
-        self._stopevent.set()
-
         # termiante all running ants
         for ant in self._ants:
             if ant.is_alive():
                 ant.terminate()
 
-    def _log(self, logstring):
+        self._stopevent.set()
+
+    def _log(self, text):
         """
         Use remote logging on Colony.
+        :param text: message to log
         """
         assert self._conn is not None, "I need a valid connection to send log messages on..."
-        self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, logstring)))
+        self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, text)))
