@@ -4,6 +4,8 @@ from multiprocessing.connection import Pipe
 import time
 import random
 
+LOGLEVELS = {'debug': 0, 'info': 1, 'warning': 2, 'error': 3}
+
 
 class TestAnt(TestCase):
 
@@ -18,7 +20,7 @@ class TestAnt(TestCase):
 
     def test_create(self):
         # create (an empty) ant with name
-        testant = Ant(name='emptyant')
+        testant = Ant(name='emptyant', loglevel=LOGLEVELS['debug'])
         self.assertEqual(testant.name, 'emptyant',
                          "Ant's thread should have the name 'emptyant', got %s" % testant.name)
 
@@ -53,7 +55,7 @@ class TestAnt(TestCase):
 
     def test_terminate(self):
         # create ant
-        testant = Ant(name='emptyant')
+        testant = Ant(name='emptyant', loglevel=LOGLEVELS['debug'])
         testant.conn = self._remote
 
         # add some long work
