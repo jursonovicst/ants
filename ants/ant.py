@@ -16,7 +16,7 @@ class Ant(Thread):
     ERROR = 40
     LOGLEVELS = {'debug': DEBUG, 'info': INFO, 'warning': WARNING, 'error': ERROR}
 
-    def __init__(self, loglevel: int = INFO, **kw):
+    def __init__(self, loglevel: int, **kw):
         """
         An ant does regular work. You may overload this method to initialize stuff for your Ant.
         :param kw: keyword arguments passed to the Thread class
@@ -94,7 +94,7 @@ class Ant(Thread):
     def conn(self, conn):
         self._conn = conn
 
-    def _log(self, text, loglevel=INFO):
+    def _log(self, text: str, loglevel: int = INFO):
         """
         Use remote logging on Colony.
         :param text: message to log
