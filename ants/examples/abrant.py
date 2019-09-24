@@ -9,7 +9,7 @@ class ABRAnt(Ant):
     An Example ABR streaming Ant implementation, it will open an ABR stream, and download streaming fragments.
     """
 
-    def __init__(self, server: str, manifestpath, strategy, duration=0, host: str = None, **kw):
+    def __init__(self, server: str, manifestpath, strategy, duration=0, host: str = None, statuscodes=None, **kw):
         """
         :param server: IP address or host name of the streaming server.
         :param manifestpath: Path of the manifest to open.
@@ -17,12 +17,14 @@ class ABRAnt(Ant):
         will be handed over as a list of integers in the first argument.
         :param duration: Limit streaming by duration sec.
         :param host: HTTP host header to be sent (may be needed, if server is specified by IP address).
+        :param statuscodes: List of expected HTTP status codes, defaut is [200].
         :param kw: Any additional parameter to be handed over to its parent class (and eventually to the Thread class).
         """
         assert isinstance(strategy, Callable), "Strategy must be callable: '%s'" % strategy
         super(ABRAnt, self).__init__(**kw)
 
         self._host = host
+        self._statuscodes = statuscodes if statuscodes is not None else [200]
 
         self._videocurl = pycurl.Curl()
         self._audiocurl = pycurl.Curl()
@@ -169,7 +171,12 @@ class ABRAnt(Ant):
             curl.setopt(pycurl.RANGE, "%s-%s" % (rfrom, rto if rto is not None else ""))
         curl.perform()
 
-        self._logdebug("'%s': %s" % (url, curl.getinfo(pycurl.HTTP_CODE)))
+        # check results
+        statuscode = curl.getinfo(pycurl.HTTP_CODE)
+        if statuscode in self._statuscodes:
+            self._logdebug("'%s': %s" % (url, statuscode))
+        else:
+            self._logwarning("'%s': %s" % (url, statuscode))
 
     def cleanup(self):
         self._videocurl.close()
