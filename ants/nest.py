@@ -119,14 +119,14 @@ class Nest(Process):
 
         self._stopevent.set()
 
-    def _log(self, text, level=LOGLEVELS['info']):
+    def _log(self, text, loglevel=INFO):
         """
         Use remote logging on Colony.
         :param text: message to log
         """
         assert self._conn is not None, "I need a valid connection to send log messages on..."
 
-        if level >= self._loglevel:
+        if loglevel >= self._loglevel:
             self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, text)))
 
     def _logdebug(self, text):
