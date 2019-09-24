@@ -38,17 +38,18 @@ class Egg(object):
         :param conn: Connection used for remote logging.
         """
         # create Ant and add to its Nest, Nest will start it...
-        try:
-            ant = self._larv(**self._kwargs)
-            nest.addant(ant)
-        except Exception as e:
-            self._log(e, conn)
+        #        try:
+        # TODO: figure out logging
+        ant = self._larv(**self._kwargs)
+        nest.addant(ant)
+#        except Exception as e:
+#            self._log(e, conn)
 
-    def _log(self, logstring, conn: Connection):
-        """
-        Use remote logging on Colony.
-        """
-        assert conn is not None, "I need a valid connection to send log messages on..."
-        conn.send(Msg("%s '%s': %s" % (
-            self.__class__.__name__, self._kwargs['name'] if 'name' in self._kwargs else 'noname',
-            logstring)))
+# def _log(self, logstring, conn: Connection):
+#     """
+#     Use remote logging on Colony.
+#     """
+#     assert conn is not None, "I need a valid connection to send log messages on..."
+#     conn.send(Msg("%s '%s': %s" % (
+#         self.__class__.__name__, self._kwargs['name'] if 'name' in self._kwargs else 'noname',
+#         logstring)))
