@@ -40,7 +40,7 @@ class Egg(object):
         # create Ant and add to its Nest, Nest will start it...
         #        try:
         # TODO: figure out logging
-        ant = self._larv(**self._kwargs)
+        ant = self._larv(loglevel=nest.loglevel, **self._kwargs)
         nest.addant(ant)
 #        except Exception as e:
 #            self._log(e, conn)
