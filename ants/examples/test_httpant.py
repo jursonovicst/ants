@@ -13,8 +13,8 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"<html><body><h1>hi!</h1></body></html>")
 
-#    def log_request(self, code='-', size='-'):
-#        pass
+    def log_request(self, code='-', size='-'):
+        pass
 
 
 class TestHTTPAnt(TestCase):
