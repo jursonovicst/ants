@@ -4,6 +4,8 @@ from multiprocessing.connection import Listener
 import random
 import time
 
+LOGLEVELS = {'debug': 0, 'info': 1, 'warning': 2, 'error': 3}
+
 
 class TestNest(TestCase):
     def setUp(self):
@@ -14,7 +16,7 @@ class TestNest(TestCase):
         self._listener.close()
 
     def test_create(self):
-        testnest = Nest(address='127.0.0.1', port=self._port, name='testnest')
+        testnest = Nest(address='127.0.0.1', port=self._port, loglevel=LOGLEVELS['debug'], name='testnest')
 
         # check nest's process
         self.assertEqual(testnest.name, 'testnest')
@@ -52,7 +54,7 @@ class TestNest(TestCase):
         conn.close()
 
     def test_ants(self):
-        testnest = Nest(address='127.0.0.1', port=self._port, name='testnest')
+        testnest = Nest(address='127.0.0.1', port=self._port, loglevel=LOGLEVELS['debug'], name='testnest')
 
         # check connection and read first message
         conn = self._listener.accept()
@@ -104,8 +106,7 @@ class TestNest(TestCase):
     def test_terminate(self):
         self.skipTest("Termination is not working yet, the scheuler in Nest must be rewriten to allow interrupt.")
 
-
-        testnest = Nest(address='127.0.0.1', port=self._port, name='testnest')
+        testnest = Nest(address='127.0.0.1', port=self._port, loglevel=LOGLEVELS['debug'], name='testnest')
 
         # check connection and read first message
         conn = self._listener.accept()
