@@ -46,6 +46,10 @@ class Nest(Process):
         except Exception as e:
             self._logerror(e)
 
+    @property
+    def loglevel(self) -> int:
+        return self._loglevel
+
     def addant(self, ant: Ant):
         """
         Do not use this function, the Egg will call it, if hatches. Keep track of hatched Ants.
