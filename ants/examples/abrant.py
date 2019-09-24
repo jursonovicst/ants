@@ -1,6 +1,8 @@
 from ants import Ant
 from typing import Callable
 from manifestparser import MParser
+import pycurl
+
 
 class ABRAnt(Ant):
     """
@@ -151,16 +153,23 @@ class ABRAnt(Ant):
         # self._audiocurl.setopt(pycurl.WRITEFUNCTION, lambda x: None)
 
     def work(self, *args):
-        assert 3 <= len(args) <= 5
+        if len(args) < 3 or len(args) > 5:
+            raise SyntaxError("%s needs 3 arguments, got %d" % (self.__class__.__name__, len(args)))
+
+        # TODO: implement checks
         curl = args[0]
         server = args[1]
         path = args[2]
         rfrom, rto = args[3] if len(args) == 4 else (None, None)
 
-        curl.setopt(pycurl.URL, "http://%s%s" % (server, path))
+        url = "http://%s%s" % (server, path)
+
+        curl.setopt(pycurl.URL, url)
         if rfrom is not None:
             curl.setopt(pycurl.RANGE, "%s-%s" % (rfrom, rto if rto is not None else ""))
         curl.perform()
+
+        self._logdebug("'%s': %s" % (url, curl.getinfo(pycurl.HTTP_CODE)))
 
     def cleanup(self):
         self._videocurl.close()
