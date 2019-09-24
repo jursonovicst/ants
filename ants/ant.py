@@ -12,7 +12,7 @@ class Ant(Thread):
     An ant template, use it to create your own ant.
     """
 
-    def __init__(self, loglevel: int, **kw):
+    def __init__(self, loglevel: int = LOGLEVELS['info'], **kw):
         """
         An ant does regular work. You may overload this method to initialize stuff for your Ant.
         :param kw: keyword arguments passed to the Thread class
