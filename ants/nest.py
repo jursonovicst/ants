@@ -7,8 +7,6 @@ import time
 import sys
 import resource
 
-LOGLEVELS = {'debug': 0, 'info': 1, 'warning': 2, 'error': 3}
-
 
 class Nest(Process):
     """
@@ -16,7 +14,13 @@ class Nest(Process):
     Use the --nextcount argument to change it.
     """
 
-    def __init__(self, address: str, port: int, loglevel: int = LOGLEVELS['info'], name=None):
+    DEBUG = Ant.DEBUG
+    INFO = Ant.INFO
+    WARNING = Ant.WARNING
+    ERROR = Ant.ERROR
+    LOGLEVELS = Ant.LOGLEVELS
+
+    def __init__(self, address: str, port: int, loglevel: int = INFO, name=None):
         super(Nest, self).__init__(name=name)
         try:
             # open connection towards the colony
@@ -126,10 +130,10 @@ class Nest(Process):
             self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, text)))
 
     def _logdebug(self, text):
-        self._log(text, LOGLEVELS['debug'])
+        self._log(text, Nest.DEBUG)
 
     def _logwarning(self, text):
-        self._log(text, LOGLEVELS['warning'])
+        self._log(text, Nest.WARNING)
 
     def _logerror(self, text):
-        self._log(text, LOGLEVELS['error'])
+        self._log(text, Nest.ERROR)
