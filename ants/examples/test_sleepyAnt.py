@@ -17,7 +17,7 @@ class TestSleepyAnt(TestCase):
     def test_create(self):
         sleepperiod = random.randint(1, 10)
         # create (an empty) ant with name
-        testant = SleepyAnt(sleepperiod=sleepperiod, name='sleepyant')
+        testant = SleepyAnt(sleepperiod=sleepperiod, name='sleepyant', loglevel=SleepyAnt.DEBUG)
 
         # set connection for communication
         testant.conn = self._remote
