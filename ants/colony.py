@@ -124,6 +124,6 @@ class Colony(Thread):
 
     def addegg(self, egg: Egg):
         """
-        Distribute Egg among Nests on a round robbin fashion.
+        Distribute Egg among Nests.
         """
         self._sendroundrobbin(egg)
