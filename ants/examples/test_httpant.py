@@ -3,6 +3,7 @@ import http.server
 from ants import HTTPAnt, Msg
 from multiprocessing.connection import Pipe
 from threading import Timer
+import random
 
 
 class MyHandler(http.server.SimpleHTTPRequestHandler):
@@ -18,10 +19,11 @@ class MyHandler(http.server.SimpleHTTPRequestHandler):
 
 class TestHTTPAnt(TestCase):
     def setUp(self):
-        self._port = 8912
+        self._port = random.randint(20000, 60000)
         self._handler = MyHandler
-
         self._httpd = http.server.HTTPServer(("", self._port), self._handler)
+
+        # create a connection pair for testing (cheat a little bit, use a pipe instead of an IP connection)
         self._local, self._remote = Pipe()
 
     def tearDown(self) -> None:
