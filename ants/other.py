@@ -17,6 +17,20 @@ class Cmd(object):
     def __init__(self, command):
         self._command = command
 
+    def __str__(self):
+        if self._command == self._EXECUTE:
+            return "EXECUTE"
+        elif self._command == self._TERMINATE:
+            return "TERMINATE"
+        elif self._command == self._TERMINATED:
+            return "TERMINATED"
+        elif self._command == self._PING:
+            return "PING"
+        elif self._command == self._PONG:
+            return "PONG"
+        else:
+            assert False, "Unknown command type: %d" % self._command
+
     @classmethod
     def execute(cls):
         return cls(cls._EXECUTE)
