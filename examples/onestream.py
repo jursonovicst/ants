@@ -11,5 +11,6 @@ class Simplequeen(Queen):
                   name="TTL 720p VC1 CLEAR",  # name of the Ant
                   server="playready.directtaps.net",  # streaming server
                   manifestpath="/smoothstreaming/TTLSS720VC1/To_The_Limit_720.ism/Manifest",  # path of the manifest
-                  strategy=max)  # bitrate switching strategy, this function will return one value of the
+                  strategy=max,
+                  loglevel=ABRAnt.DEBUG)  # bitrate switching strategy, this function will return one value of the
         # bitrates, which will be handed over as a list in the first argument.
