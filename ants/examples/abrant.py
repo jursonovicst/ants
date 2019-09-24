@@ -35,19 +35,21 @@ class ABRAnt(Ant):
             self._videocurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % self._host])
             self._audiocurl.setopt(pycurl.HTTPHEADER, ['Host: %s' % self._host])
 
+
+
         mparser = MParser("http://%s%s" % (server, manifestpath))
 
         for at, path, ranges in mparser.fragments(MParser.VIDEO, strategy=strategy, duration=duration):
             self.schedulework(at,
                               self._videocurl,
-                              mparser.urlp.netlock,  # TODO: check port support at netlock
+                              mparser.urlp.netloc,  # TODO: check port support at netlock
                               path,
                               ranges)
 
         for at, path, ranges in mparser.fragments(MParser.AUDIO, strategy=strategy, duration=duration):
             self.schedulework(at,
                               self._audiocurl,
-                              mparser.urlp.netlock,  # TODO: check port support at netlock
+                              mparser.urlp.netloc,  # TODO: check port support at netlock
                               path,
                               ranges)
 
