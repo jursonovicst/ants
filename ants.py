@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from ants import Colony, Nest, Queen
+from ants import Colony, Nest, Queen, LOGLEVELS
 import multiprocessing
 
 if __name__ == "__main__":
@@ -15,6 +15,7 @@ if __name__ == "__main__":
                         , default=0)
     parser.add_argument('profile', type=argparse.FileType('r'), nargs='?',
                         help="Python file containing a subclass of the Queen class to describe the load profile.")
+    parser.add_argument('loglevel', choices=LOGLEVELS.keys(), default='warning')
 
     args = parser.parse_args()
 
@@ -35,7 +36,7 @@ if __name__ == "__main__":
         if mode == MSLAVE:
             print("Running mode: slave")
             for i in range(0, (multiprocessing.cpu_count() - 2) if args.nestcount is 0 else args.nestcount):
-                mynests.append(Nest(address=args.connect[0], port=args.port,
+                mynests.append(Nest(address=args.connect[0], port=args.port, loglevel=LOGLEVELS[args.loglevel],
                                     name="%s_%d" % (args.connect[1] if len(args.connect) > 1 else 'default', i)))
 
             # wait till all ends, this will block
@@ -60,7 +61,8 @@ if __name__ == "__main__":
             mycolony = Colony(address='127.0.0.1', port=args.port)
 
             for i in range(0, (multiprocessing.cpu_count() - 2) if args.nestcount is 0 else args.nestcount):
-                nest = Nest(address='127.0.0.1', port=args.port, name="%s_%d" % ('default', i))
+                nest = Nest(address='127.0.0.1', port=args.port, loglevel=LOGLEVELS[args.loglevel],
+                            name="%s_%d" % ('default', i))
                 mynests.append(nest)
 
             # continue to load
