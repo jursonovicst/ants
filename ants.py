@@ -97,6 +97,7 @@ if __name__ == "__main__":
             for nest in mynests:
                 if nest.is_alive():
                     nest.terminate()
+
     except KeyboardInterrupt:
         # terminate Colony if any, Colony will terminate its Nests
         if mycolony:
