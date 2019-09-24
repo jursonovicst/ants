@@ -7,6 +7,9 @@ import time
 import sys
 import resource
 
+LOGLEVELS = {'debug': 0, 'info': 1, 'warning': 2, 'error': 3}
+
+
 
 class Nest(Process):
     """
@@ -14,7 +17,7 @@ class Nest(Process):
     Use the --nextcount argument to change it.
     """
 
-    def __init__(self, address: str, port: int, name='noname'):
+    def __init__(self, address: str, port: int, loglevel: int, name=None):
         super(Nest, self).__init__(name=name)
         try:
             # open connection towards the colony
@@ -23,6 +26,7 @@ class Nest(Process):
             self._stopevent = Event()
             self._startevent = Event()
             self._ants = []
+            self._loglevel = loglevel
 
             # load simulation Queen
             #            with open("examples/simple.py", "r") as f:
@@ -37,7 +41,7 @@ class Nest(Process):
             print("Cannot connect to Colony on %s:%d: '%s', terminating." % (address, port, err))
             sys.exit(1)
         except Exception as e:
-            self._log(e)
+            self._logerror(e)
 
     def addant(self, ant: Ant):
         """
@@ -112,10 +116,21 @@ class Nest(Process):
 
         self._stopevent.set()
 
-    def _log(self, text):
+    def _log(self, text, level=LOGLEVELS['info']):
         """
         Use remote logging on Colony.
         :param text: message to log
         """
         assert self._conn is not None, "I need a valid connection to send log messages on..."
-        self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, text)))
+
+        if level >= self._loglevel:
+            self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, text)))
+
+    def _logdebug(self, text):
+        self._log(text, LOGLEVELS['debug'])
+
+    def _logwarning(self, text):
+        self._log(text, LOGLEVELS['warning'])
+
+    def _logerror(self, text):
+        self._log(text, LOGLEVELS['error'])
