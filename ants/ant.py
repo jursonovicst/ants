@@ -28,7 +28,7 @@ class Ant(Thread):
 
     def schedulework(self, delay, *args):
         """
-        Schedule work for the ant.
+        Use this function to schedule triggering the work method.
         :param delay: Time at work should be done
         :param args: Arguments passed to the work() method.
         """
@@ -68,12 +68,14 @@ class Ant(Thread):
 
     def cleanup(self):
         """
-        Called after finished processing the tasks to clean up stuff. You may overload this method.
+        Called after finished processing the tasks to let you clean up your stuff. You may overload this method.
         """
         pass
 
     def terminate(self):
-        # clear stop event
+        """
+        Terminate Ant, stop processing scheduled works.
+        """
         self._stopevent.set()
 
     @property
@@ -84,6 +86,10 @@ class Ant(Thread):
     def conn(self, conn):
         self._conn = conn
 
-    def _log(self, msg):
+    def _log(self, text):
+        """
+        Log function, use it to log messages.
+        :param text: message to log
+        """
         assert self._conn is not None, "I need a valid connection to send log messages on..."
-        self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, msg)))
+        self._conn.send(Msg("%s '%s': %s" % (self.__class__.__name__, self.name, text)))
