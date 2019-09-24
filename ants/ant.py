@@ -88,7 +88,7 @@ class Ant(Thread):
 
     def _log(self, text):
         """
-        Log function, use it to log messages.
+        Use remote logging on Colony.
         :param text: message to log
         """
         assert self._conn is not None, "I need a valid connection to send log messages on..."
