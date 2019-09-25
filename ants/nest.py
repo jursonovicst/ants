@@ -53,6 +53,14 @@ class Nest(Process):
         except KeyboardInterrupt:
             pass
 
+    @classmethod
+    def terminateall(cls):
+        """
+        Terminate all Nests, do not wait for them.
+        """
+        for n in cls._nests:
+            n.terminate()
+
     def __init__(self, address: str, port: int, loglevel: int = INFO, name=None):
         super(Nest, self).__init__(name=name)
 
