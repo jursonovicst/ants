@@ -1,11 +1,12 @@
 from ants import Msg, Ant, Cmd
 from multiprocessing import Process
-from multiprocessing.connection import Client
+from multiprocessing.connection import Client, wait
 from threading import Event
 import sched
 import time
 import sys
 import resource
+import signal
 
 
 class Nest(Process):
@@ -20,31 +21,65 @@ class Nest(Process):
     ERROR = Ant.ERROR
     LOGLEVELS = Ant.LOGLEVELS
 
+    _nests = []
+
+    @classmethod
+    def _register(cls, nest):
+        """
+        Keep track of Nest's running processes.
+        :param nest:
+        :return:
+        """
+        cls._nests.append(nest)
+
+    @classmethod
+    def waitforall(cls):
+        """
+        Wait for all nests to finish, then remove them from registry.
+        """
+        try:
+            terminatedsentinels = wait(map(lambda n: n.sentinel, cls._nests))
+            while terminatedsentinels is not None:
+                for nest in [nest for nest in cls._nests if nest.sentinel in terminatedsentinels]:
+                    assert not nest.is_alive(), "'%s' nest's sentinel become active, however the nest is still alive" % nest.name
+                    cls._nests.remove(nest)
+                terminatedsentinels = wait(map(lambda n: n.sentinel, cls._nests))
+        except KeyboardInterrupt:
+            pass
+
     def __init__(self, address: str, port: int, loglevel: int = INFO, name=None):
         super(Nest, self).__init__(name=name)
-        try:
-            # open connection towards the colony
-            self._conn = Client(address=(address, port), family='AF_INET')
 
+        try:
             self._stopevent = Event()
             self._startevent = Event()
             self._ants = []
             self._loglevel = loglevel
 
-            # load simulation Queen
-            #            with open("examples/simple.py", "r") as f:
-            #                exec(f.read())
+            # register SIGTERM and SIGINT for graceful exit
+            signal.signal(signal.SIGTERM, self._stop)
+            signal.signal(signal.SIGINT, self._stop)
 
-            # scheduler used for scheduling  hatch events of Eggs.
+            # open connection towards the colony
+            self._conn = Client(address=(address, port), family='AF_INET')
+
+            # scheduler used for scheduling hatch events of Eggs.
             self._scheduler = sched.scheduler(time.time, time.sleep)
 
+            # start nest's process
             self.start()
 
+            # register itself
+            Nest._register(self)
+
         except ConnectionRefusedError as err:
-            print("Cannot connect to Colony on %s:%d: '%s', terminating." % (address, port, err))
-            sys.exit(1)
+            raise SystemError("Cannot connect to Colony on %s:%d: '%s', terminating." % (address, port, err))
         except Exception as e:
             self._logerror(e)
+
+    def _stop(self, signum, frame):
+        assert signum == signal.SIGTERM or signum == signal.SIGINT, "Unexpected signal received: %d" % signum
+        self._stopevent.set()
 
     @property
     def loglevel(self) -> int:
@@ -64,27 +99,29 @@ class Nest(Process):
 
     def run(self):
         """
-        Manage egg hatching, communication with Colony.
+        Manage egg hatching, communication with Colony. It must terminate itself, it here are no more events.
         """
         self._log("started, max open files: '%d %d'" % resource.getrlimit(resource.RLIMIT_NOFILE))
 
         try:
-            # keep checking commands till stopevent
+            # terminate if there are no more eggs to hatch (scheduler is empty)
             while not self._stopevent.isSet():
 
-                # poll till the next event, or for 0.1 seconds, if not yet executing.
-                polltime = self._scheduler.run(blocking=False) if self._startevent.isSet() else 0.05
-
-                # remember the start of pooling. If waiting during polling is interrupted, the remaining time must be
-                # polled again.
+                # remember the start of pooling. If waiting is interrupted, the remaining time must be polled again.
                 pollstart = time.time()
 
-                # terminate, if there are no more eggs to hatch (Scheduler.run() returns None)
-                if polltime is None:
+                # poll 0.05s if not started yet, or the interval till next event.
+                pollintervall = 0.05 if not self._startevent.isSet() else self._scheduler.run(blocking=False)
+
+                # exit if there are no more eggs to hatch
+                if pollintervall is None:
                     self._stopevent.set()
 
-                # do polling, repeate with the remaining wait time, if interrupted by a message.
-                while not self._stopevent.isSet() and self._conn.poll(timeout=max(0, polltime)):
+                # use blocking poll for sleeping, repeate with the remaining time, if interrupted by a message.
+                # Read all messages
+                while not self._stopevent.isSet() and self._conn.poll(timeout=max(0, pollintervall)):
+
+                    # (at least one) message received
                     o = self._conn.recv()
 
                     # if isinstance(o, Egg): #TODO figure out, why this is not working
@@ -94,34 +131,29 @@ class Nest(Process):
                     elif isinstance(o, Cmd):
                         if o.isexecute():
                             self._startevent.set()
-                        elif o.isterminate():
-                            self._terminate()
                         elif o.isping():
                             self._conn.send(Cmd.pong())
 
                     # calculate remaining wait time
-                    polltime -= time.time() - pollstart
+                    pollintervall -= time.time() - pollstart
+        except Exception as e:
+            self._logerror(e)
 
-            # wait for still running ants to finish
-            for ant in self._ants:
-                if ant.is_alive():
-                    ant.join()
-                    self._ants.remove(ant)
-
-        except KeyboardInterrupt:
-            self._log("interrupted.")
-
-        self._conn.send(Cmd.terminated())
-        self._conn.close()
-        sys.exit(0)
-
-    def _terminate(self):
-        # termiante all running ants
+        # terminate ants (if alive)
         for ant in self._ants:
             if ant.is_alive():
                 ant.terminate()
 
-        self._stopevent.set()
+        # wait for ants to finish
+        for ant in self._ants:
+            if ant.is_alive():
+                ant.join()
+            self._ants.remove(ant)
+
+        self._log("terminated.")
+        self._conn.close()
+
+        sys.exit(0)
 
     def _log(self, text, loglevel=INFO):
         """
