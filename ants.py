@@ -82,6 +82,14 @@ if __name__ == "__main__":
             # execute
             mycolony.execute()
 
+    except Exception as e:
+        print(e)
+        Nest.terminateall()
+
+    except KeyboardInterrupt:
+        Nest.terminateall()
+
+    finally:
         # wait till all nests ends (this will block)
         Nest.waitforall()
 
@@ -89,15 +97,3 @@ if __name__ == "__main__":
         if mycolony:
             mycolony.terminate()
             mycolony.join()
-
-    except Exception as e:
-        print(e)
-        if mycolony:
-            mycolony.terminate()
-
-    except KeyboardInterrupt:
-        if mycolony:
-            mycolony.terminate()
-
-    # wait till all nests ends (this will block)
-    Nest.waitforall()
