@@ -66,7 +66,6 @@ class Colony(Thread):
                         print(o)
                     elif isinstance(o, Cmd):
                         if o.isterminated():
-                            self._log("Nest %s terminated" % "_")
                             self._conns.remove(conn)
                             conn.close()
 
@@ -117,9 +116,6 @@ class Colony(Thread):
         """
         Terminate execution.
         """
-        self._sendtoall(Cmd.terminate())
-
-        # set own terminate event as well
         self._stopevent.set()
 
     def addegg(self, egg: Egg):
