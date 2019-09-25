@@ -38,12 +38,18 @@ class Nest(Process):
         Wait for all nests to finish, then remove them from registry.
         """
         try:
-            terminatedsentinels = wait(map(lambda n: n.sentinel, cls._nests))
-            while terminatedsentinels is not None:
+            terminatedsentinels = []
+            if cls._nests:
+                terminatedsentinels = wait(map(lambda n: n.sentinel, cls._nests))
+
+            while cls._nests and terminatedsentinels:
                 for nest in [nest for nest in cls._nests if nest.sentinel in terminatedsentinels]:
                     assert not nest.is_alive(), "'%s' nest's sentinel become active, however the nest is still alive" % nest.name
                     cls._nests.remove(nest)
-                terminatedsentinels = wait(map(lambda n: n.sentinel, cls._nests))
+
+                # call wait only, if there are still nests. wait([]) will wait forever :( Bug?!
+                if cls._nests:
+                    terminatedsentinels = wait(map(lambda n: n.sentinel, cls._nests))
         except KeyboardInterrupt:
             pass
 
